@@ -1,0 +1,201 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+:root {
+  --brown:#4A3728; --brown-light:#6B5344; --brown-pale:#8B7355;
+  --green:#2EAD6B; --green-light:#3CC47E; --green-pale:#E8F7EF; --green-dark:#1E8A53;
+  --gold:#C4956A; --gold-light:#D4AD84; --olive:#8B7E4B; /* 앵두용 보존 */
+  --bg:#FAFAF8; --card:#FFFFFF; --border:#E8E4DF; --border-light:#F0ECE7;
+  --text:#3D3027; --text-light:#8B7E74; --text-mid:#6B5F55;
+  --danger:#C4463A; --warn:#D4883A; --success:#2EAD6B;
+  --sidebar-w:230px; --warm-bg:#F5F2ED;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+
+/* ─── Sidebar ─── */
+.sidebar{position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;background:var(--brown);color:#fff;z-index:100;display:flex;flex-direction:column}
+.sidebar .logo-area{padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;flex-direction:column;align-items:center;gap:5px}
+.sidebar .logo-img{width:120px;height:auto}
+.sidebar .site-name{font-size:10px;color:rgba(255,255,255,.45);font-weight:300;letter-spacing:.5px}
+.sidebar nav{flex:1;overflow-y:auto;padding:10px 0;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent}
+.sidebar nav::-webkit-scrollbar{width:6px}
+.sidebar nav::-webkit-scrollbar-track{background:transparent}
+.sidebar nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:3px}
+.sidebar nav::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.3)}
+.sidebar nav a{display:flex;align-items:center;gap:10px;padding:10px 22px;color:rgba(255,255,255,.55);text-decoration:none;font-size:13px;font-weight:400;transition:.2s;border-left:3px solid transparent}
+.sidebar nav a:hover{color:rgba(255,255,255,.9);background:rgba(255,255,255,.05)}
+.sidebar nav a.active{color:#fff;background:rgba(255,255,255,.08);border-left-color:var(--green-light);font-weight:500}
+.sidebar nav a .icon{width:20px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sidebar nav a .icon svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.sidebar nav .divider{height:1px;background:rgba(255,255,255,.08);margin:8px 20px}
+.sidebar nav .section-label{padding:16px 22px 6px;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.25);font-weight:500}
+.sidebar .user-area{padding:14px 20px;border-top:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:10px}
+.sidebar .user-area a{color:#fff;text-decoration:none}
+.sidebar .user-area a:visited{color:#fff}
+.sidebar .user-area a:active{color:var(--green-light)}
+.sidebar .user-area a:hover .uname{color:var(--green-light)}
+.sidebar .user-area .avatar{width:34px;height:34px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;color:#fff;flex-shrink:0}
+.sidebar .user-area .uname{font-size:13px;font-weight:500;color:#fff;transition:.15s}
+.sidebar .user-area .role{font-size:11px;color:rgba(255,255,255,.45)}
+.sidebar .ext-link{display:flex;align-items:center;gap:8px;padding:10px 22px;color:var(--green-light);text-decoration:none;font-size:11px;border-top:1px solid rgba(255,255,255,.06);transition:.2s}
+.sidebar .ext-link:hover{color:#fff;background:rgba(255,255,255,.03)}
+.sidebar .ext-link svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+
+/* ─── Topbar ─── */
+.topbar{margin-left:var(--sidebar-w);height:54px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:50}
+.topbar .page-title{font-size:16px;font-weight:600;color:var(--brown)}
+.topbar .notif{position:relative;width:34px;height:34px;border-radius:50%;background:var(--warm-bg);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;border:1px solid var(--border)}
+.topbar .notif .badge{position:absolute;top:1px;right:1px;width:16px;height:16px;border-radius:50%;background:var(--danger);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:600}
+
+/* ─── Main ─── */
+.main{margin-left:var(--sidebar-w);padding:24px 28px;min-height:100vh}
+
+/* ─── Cards ─── */
+.card{background:var(--card);border-radius:12px;border:1px solid var(--border-light);padding:22px;margin-bottom:16px;box-shadow:0 1px 3px rgba(74,55,40,.04)}
+.card h3{font-size:14px;color:var(--brown);margin-bottom:16px;font-weight:600}
+
+/* ─── Summary cards ─── */
+.summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.summary-card{background:var(--card);border-radius:12px;border:1px solid var(--border-light);padding:18px;text-align:center;box-shadow:0 1px 3px rgba(74,55,40,.04);transition:transform .15s,box-shadow .15s;display:block}
+a.summary-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(74,55,40,.12)}
+.summary-card .number{font-size:30px;font-weight:700;line-height:1.2}
+.summary-card .label{font-size:12px;color:var(--text-light);margin-top:4px;font-weight:400}
+.summary-card.danger .number{color:var(--danger)}
+.summary-card.warn .number{color:var(--warn)}
+.summary-card.success .number{color:var(--green)}
+.summary-card.info .number{color:var(--brown)}
+
+/* ─── Kanban ─── */
+.kanban{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.kanban-col{background:var(--warm-bg);border-radius:10px;padding:14px;min-height:200px;min-width:0;overflow:hidden}
+.kanban-col h4{font-size:12px;letter-spacing:.3px;color:var(--text-light);margin-bottom:10px;display:flex;justify-content:space-between;font-weight:500}
+.kanban-col h4 .count{background:var(--green);color:#fff;border-radius:10px;padding:1px 8px;font-size:11px}
+.task-card{background:var(--card);border-radius:8px;padding:12px;margin-bottom:8px;border:1px solid var(--border-light);font-size:12px;cursor:pointer;transition:.15s;overflow:hidden;word-break:break-word}
+.task-card:hover{box-shadow:0 3px 10px rgba(74,55,40,.08);transform:translateY(-1px)}
+.task-card .task-title{font-weight:500;margin-bottom:6px;color:var(--brown)}
+.task-card .task-meta{display:flex;justify-content:space-between;color:var(--text-light);font-size:11px}
+.priority-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
+.priority-dot.urgent{background:var(--danger)}
+.priority-dot.high{background:var(--warn)}
+.priority-dot.normal{background:var(--green)}
+.priority-dot.low{background:#999}
+
+/* ─── Table ─── */
+.data-table{width:100%;border-collapse:collapse;font-size:13px}
+.data-table th{background:var(--brown);color:#fff;padding:10px 12px;text-align:left;font-weight:500;font-size:12px}
+.data-table th:first-child{border-radius:6px 0 0 0}
+.data-table th:last-child{border-radius:0 6px 0 0}
+.data-table td{padding:10px 12px;border-bottom:1px solid var(--border-light)}
+.data-table tr:hover td{background:var(--warm-bg)}
+.status-badge{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:500;display:inline-block;cursor:pointer}
+.status-badge.active{background:var(--green-pale);color:var(--green-dark)}
+.status-badge.progress{background:#EDE7F6;color:#5E35B1}
+.status-badge.plan{background:#FDF3E7;color:var(--warn)}
+.status-badge.done{background:#E0E0E0;color:#666}
+.status-badge.danger{background:#FCEAE8;color:var(--danger)}
+.cost-ok{color:var(--green);font-weight:600}
+.cost-over{color:var(--danger);font-weight:600}
+
+/* ─── Action buttons (items table) ─── */
+.btn-edit{padding:4px 12px;font-size:11px;font-weight:500;background:var(--warm-bg);color:var(--brown);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-family:inherit;transition:.15s}
+.btn-edit:hover{background:var(--brown);color:#fff;border-color:var(--brown)}
+.btn-del{padding:4px 12px;font-size:11px;font-weight:500;background:#fff;color:var(--danger);border:1px solid #f0d0cd;border-radius:6px;cursor:pointer;font-family:inherit;transition:.15s}
+.btn-del:hover{background:var(--danger);color:#fff;border-color:var(--danger)}
+
+/* ─── Buttons ─── */
+.btn-primary{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:.15s}
+.btn-primary:hover{background:var(--green-dark)}
+.btn-outline{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:var(--card);color:var(--brown);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit}
+.btn-outline:hover{border-color:var(--brown-light);background:var(--warm-bg)}
+.btn-danger{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:var(--danger);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit}
+.btn-pricing{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;background:var(--brown);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;text-decoration:none;font-family:inherit}
+.btn-pricing:hover{background:var(--brown-light)}
+
+/* ─── Forms ─── */
+.form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.form-group label{font-size:12px;font-weight:600;color:var(--brown)}
+.form-group label .req{color:var(--danger)}
+.form-group input,.form-group select,.form-group textarea{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:var(--card)}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(46,173,107,.1)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-group.full{grid-column:1/-1}
+
+/* ─── Modal ─── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay.show{opacity:1;pointer-events:auto}
+.modal{background:var(--card);border-radius:16px;width:680px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(74,55,40,.2);transform:translateY(20px);transition:transform .25s}
+.modal-overlay.show .modal{transform:translateY(0)}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center}
+.modal-header h3{font-size:16px;font-weight:700;color:var(--brown);margin:0}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-light);padding:4px}
+.modal-close:hover{color:var(--danger)}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border-light);display:flex;justify-content:flex-end;gap:10px}
+
+/* ─── Auto task preview ─── */
+.auto-tasks-preview{background:var(--warm-bg);border:1px dashed var(--border);border-radius:10px;padding:16px;margin-top:8px}
+.auto-tasks-preview h4{font-size:13px;font-weight:600;color:var(--brown);margin-bottom:12px}
+.task-flow{display:flex;align-items:center;gap:0;justify-content:center;flex-wrap:wrap}
+.task-flow-step{display:flex;flex-direction:column;align-items:center;padding:10px 14px;background:var(--card);border-radius:10px;border:1px solid var(--border-light);min-width:100px;text-align:center}
+.task-flow-step .step-icon{font-size:20px;margin-bottom:4px}
+.task-flow-step .step-name{font-size:12px;font-weight:600;color:var(--brown)}
+.task-flow-step .step-date{font-size:11px;color:var(--text-light);margin-top:2px}
+.task-flow-step .step-who{font-size:10px;color:var(--green);margin-top:2px;font-weight:500}
+.task-flow-arrow{font-size:18px;color:var(--text-light);margin:0 6px}
+
+/* ─── Inventory ─── */
+.inv-item{margin-bottom:14px}
+.inv-header{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+.inv-header .name{font-weight:600;color:var(--brown)}
+.inv-header .info{color:var(--text-light);font-size:12px}
+.inv-bar{height:20px;background:var(--warm-bg);border-radius:10px;overflow:hidden;position:relative}
+.inv-bar .fill{height:100%;border-radius:10px}
+.inv-bar .fill.high{background:linear-gradient(90deg,var(--green),var(--green-light))}
+.inv-bar .fill.mid{background:linear-gradient(90deg,#D4883A,#E8A84C)}
+.inv-bar .fill.low{background:linear-gradient(90deg,#C4463A,#D45A4E)}
+
+/* ─── Category chips ─── */
+.cat-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:var(--warm-bg);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text-mid);margin:4px}
+.cat-chip .cat-count{background:var(--green-pale);color:var(--green);padding:1px 6px;border-radius:8px;font-size:10px;font-weight:600}
+
+/* ─── Gantt ─── */
+.gantt-container{background:var(--warm-bg);border:1px dashed var(--border);border-radius:8px;padding:24px}
+.gantt-row{display:flex;align-items:center;margin-bottom:10px}
+.gantt-label{width:180px;font-size:12px;flex-shrink:0;display:flex;flex-direction:column;gap:1px}
+.gantt-track{flex:1;height:22px;position:relative;background:rgba(255,255,255,.6);border-radius:4px}
+.gantt-bar{position:absolute;height:100%;border-radius:4px;top:0;font-size:9px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:500;transition:.3s}
+
+/* ─── Pulse animation ─── */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ─── Flash ─── */
+.flash-msg{padding:12px 20px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:500}
+.flash-msg.success{background:var(--green-pale);color:var(--green-dark);border:1px solid rgba(46,173,107,.2)}
+.flash-msg.error{background:#FCEAE8;color:var(--danger);border:1px solid rgba(196,70,58,.2)}
+.flash-msg.warning{background:#FDF3E7;color:var(--warn);border:1px solid rgba(212,136,58,.2)}
+.flash-msg.info{background:#E3F2FD;color:#1565C0;border:1px solid rgba(21,101,192,.15)}
+
+/* ─── Login ─── */
+.login-container{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--brown)}
+.login-box{background:var(--card);border-radius:16px;padding:48px 40px;width:380px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.login-box .logo{text-align:center;margin-bottom:32px}
+.login-box .logo h1{font-size:22px;font-weight:700;color:var(--brown)}
+.login-box .logo p{font-size:11px;color:var(--green);letter-spacing:2px;margin-top:4px}
+.login-box .login-field{margin-bottom:16px}
+.login-box .login-field label{display:block;font-size:12px;font-weight:600;color:var(--text-mid);margin-bottom:6px}
+.login-box .login-field input{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit}
+.login-box .login-field input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(46,173,107,.1)}
+.login-box .login-btn{width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px}
+.login-box .login-btn:hover{background:var(--green-dark)}
+.login-box .hint{text-align:center;margin-top:20px;font-size:11px;color:var(--text-light)}
+
+/* ─── Empty state ─── */
+.empty-state{text-align:center;padding:40px;color:var(--text-light)}
+.empty-state .icon{font-size:40px;margin-bottom:12px}
+
+/* ─── Responsive ─── */
+@media(max-width:900px){
+  .sidebar{display:none}
+  .main,.topbar{margin-left:0}
+  .summary-row{grid-template-columns:repeat(2,1fr)}
+  .kanban{grid-template-columns:repeat(2,1fr)}
+}

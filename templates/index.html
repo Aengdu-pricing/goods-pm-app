@@ -1,0 +1,2160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>좋은생각 굿즈 워크 스테이션</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<!-- ═══ Sidebar ═══ -->
+<div class="sidebar">
+  <div class="logo-area">
+    <img src="{{ url_for('static', filename='img/logo_sidebar.png') }}" alt="좋은생각 positive thinking" class="logo-img">
+    <div class="site-name">굿즈 워크 스테이션</div>
+  </div>
+  <nav>
+    <div class="section-label">메인</div>
+    <a href="{{ url_for('dashboard') }}" class="{% if page=='dashboard' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><rect x="2" y="10" width="4" height="7" rx="1"/><rect x="8" y="6" width="4" height="11" rx="1"/><rect x="14" y="3" width="4" height="14" rx="1"/><circle cx="4" cy="5" r="1.2" fill="currentColor" stroke="none"/><circle cx="10" cy="3" r="1.2" fill="currentColor" stroke="none"/><path d="M4 5L10 3L16 1.5" stroke-width="1.2"/></svg></span>대시보드</a>
+    <a href="{{ url_for('tasks') }}" class="{% if page=='tasks' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><rect x="2" y="2" width="16" height="16" rx="3"/><path d="M6 7h8M6 10h8M6 13h5"/><circle cx="15" cy="14" r="1" fill="currentColor" stroke="none"/></svg></span>업무 관리</a>
+    <a href="{{ url_for('items') }}" class="{% if page=='items' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><path d="M3 7l7-4 7 4v8l-7 4-7-4z"/><path d="M3 7l7 4 7-4"/><path d="M10 11v8"/></svg></span>상품 관리</a>
+    <a href="{{ url_for('calendar') }}" class="{% if page=='calendar' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><rect x="2" y="4" width="16" height="14" rx="2.5"/><path d="M2 8.5h16"/><path d="M6 2v4M14 2v4"/><circle cx="7" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="10" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="13" cy="12" r="1" fill="currentColor" stroke="none"/></svg></span>캘린더 / 간트</a>
+    <a href="{{ url_for('inventory') }}" class="{% if page=='inventory' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><path d="M2 6l3-3h10l3 3"/><rect x="2" y="6" width="16" height="11" rx="1.5"/><path d="M8 6v3a2 2 0 004 0V6"/><path d="M2 11h16" stroke-dasharray="2 2" opacity=".4"/></svg></span>재고 대시보드</a>
+    <div class="divider"></div>
+    <div class="section-label">사업 라인</div>
+    <a href="{{ url_for('books') }}" class="{% if page=='books' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><path d="M3 3c2-.5 4-.5 7 1v14c-3-1.5-5-1.5-7-1z"/><path d="M17 3c-2-.5-4-.5-7 1v14c3-1.5 5-1.5 7-1z"/><circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none" opacity=".5"/></svg></span>단행본 / 앵두</a>
+    <a href="{{ url_for('kakao') }}" class="{% if page=='kakao' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><circle cx="10" cy="8" r="6"/><path d="M7 14l-2 4h10l-2-4" /><path d="M8 7.5a2.5 2 0 015 0" fill="none"/><circle cx="10" cy="10" r=".8" fill="currentColor" stroke="none"/></svg></span>카카오메이커스</a>
+    <a href="{{ url_for('ideas') }}" class="{% if page=='ideas' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><path d="M10 2a6 6 0 014 10.5V15a2 2 0 01-2 2H8a2 2 0 01-2-2v-2.5A6 6 0 0110 2z"/><path d="M8 18h4"/><path d="M10 2v-0" stroke-width="2"/><path d="M3 8H1M19 8h-2M4 3l1.5 1.5M16 3l-1.5 1.5" stroke-width="1.4"/></svg></span>아이디어 게시판</a>
+    <div class="divider"></div>
+    <div class="section-label">관리</div>
+    <a href="{{ url_for('checklist') }}" class="{% if page=='checklist' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><rect x="2" y="2" width="16" height="16" rx="3"/><path d="M6 10l2.5 2.5L14 7" stroke-width="2"/></svg></span>퀄리티 체크</a>
+    <a href="{{ url_for('cost') }}" class="{% if page=='cost' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="8"/><path d="M10 4v12"/><path d="M7 7c0-1.5 1.5-2 3-2s3 .5 3 2-1 2-3 2.5S7 11 7 12.5 8.5 15 10 15s3-.5 3-2"/></svg></span>비용 관리</a>
+    <a href="{{ url_for('feedback') }}" class="{% if page=='feedback' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><path d="M3 4h14a1 1 0 011 1v8a1 1 0 01-1 1H7l-4 3v-3a1 1 0 01-1-1V5a1 1 0 011-1z"/><circle cx="7" cy="9" r=".8" fill="currentColor" stroke="none"/><circle cx="10" cy="9" r=".8" fill="currentColor" stroke="none"/><circle cx="13" cy="9" r=".8" fill="currentColor" stroke="none"/></svg></span>고객 피드백</a>
+    <a href="{{ url_for('ai_check') }}" class="{% if page=='ai_check' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><rect x="4" y="2" width="12" height="16" rx="2"/><circle cx="10" cy="8" r="3"/><path d="M7 8h-3M16 8h-3"/><path d="M10 5V2M10 14v-3"/><path d="M8 14h4" stroke-width="1.4"/><circle cx="10" cy="8" r="1" fill="currentColor" stroke="none"/></svg></span>AI 제작 가이드</a>
+    <a href="{{ url_for('marketing') }}" class="{% if page=='marketing' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><path d="M2 16l4-5 3 3 4-6 5 4"/><circle cx="6" cy="11" r="1.2" fill="currentColor" stroke="none"/><circle cx="9" cy="14" r="1.2" fill="currentColor" stroke="none"/><circle cx="13" cy="8" r="1.2" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.2" fill="currentColor" stroke="none"/><path d="M15 3l3 1-1 3" fill="none" stroke-width="1.4"/></svg></span>마케팅 부스팅</a>
+    <a href="{{ url_for('categories') }}" class="{% if page=='categories' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><path d="M2 5a1 1 0 011-1h5l2 2h7a1 1 0 011 1v9a1 1 0 01-1 1H3a1 1 0 01-1-1z"/><path d="M6 10h8" opacity=".5"/><path d="M6 13h5" opacity=".5"/></svg></span>카테고리</a>
+    {% if current_user.role in ['소장','편집장'] %}
+    <a href="{{ url_for('admin_users') }}" class="{% if page=='admin_users' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><circle cx="8" cy="6" r="3.5"/><path d="M2 17c0-3.5 2.5-6 6-6s6 2.5 6 6"/><circle cx="15" cy="7" r="2.5"/><path d="M15 11c2 0 4 1.5 4 4"/></svg></span>사용자 관리</a>
+    {% endif %}
+  </nav>
+  <a href="https://grim-timi-positivethinking-72254524.koyeb.app/" target="_blank" class="ext-link">
+    <svg viewBox="0 0 16 16"><circle cx="6" cy="10" r="4" fill="#3CC47E" stroke="none" opacity=".7"/><circle cx="11" cy="9" r="3" fill="#2EAD6B" stroke="none" opacity=".6"/><path d="M6 6C7 4 8 2.5 9.5 2" stroke="#1E8A53" stroke-width="1.2" stroke-linecap="round" fill="none"/><path d="M11 6C10.5 4.5 10 3 9.5 2" stroke="#1E8A53" stroke-width="1.2" stroke-linecap="round" fill="none"/></svg>
+    앵두 가격 추천 로봇
+  </a>
+  <div class="user-area">
+    <a href="{{ url_for('profile') }}" style="display:flex;align-items:center;gap:10px;flex:1">
+      <div class="avatar">{{ current_user.name[0] }}</div>
+      <div>
+        <div class="uname">{{ current_user.name }}</div>
+        <div class="role">{{ current_user.role }}</div>
+      </div>
+    </a>
+    <a href="{{ url_for('logout') }}" style="color:rgba(255,255,255,.4);text-decoration:none" title="로그아웃"><svg viewBox="0 0 16 16" width="14" height="14" stroke="currentColor" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3"/><path d="M10 12l4-4-4-4"/><path d="M14 8H6"/></svg></a>
+  </div>
+</div>
+
+<!-- ═══ Topbar ═══ -->
+<div class="topbar">
+  <div class="page-title">
+    {% if page=='dashboard' %}대시보드
+    {% elif page=='tasks' %}업무 관리
+    {% elif page=='items' %}상품 관리
+    {% elif page=='calendar' %}캘린더 / 간트
+    {% elif page=='inventory' %}재고 대시보드
+    {% elif page=='books' %}단행본 / 앵두 프로젝트
+    {% elif page=='kakao' %}카카오메이커스 이벤트
+    {% elif page=='ideas' %}아이디어 게시판
+    {% elif page=='ai_check' %}AI 제작 가이드
+    {% elif page=='marketing' %}마케팅 부스팅
+    {% elif page=='checklist' %}퀄리티 체크리스트
+    {% elif page=='cost' %}비용 관리
+    {% elif page=='inventory_preview' %}재고 PDF 미리보기
+    {% elif page=='feedback' %}고객 피드백
+    {% elif page=='profile' %}프로필 설정
+    {% elif page=='admin_users' %}사용자 관리
+    {% elif page=='categories' %}카테고리 관리
+    {% endif %}
+  </div>
+  <div class="notif" style="position:relative;cursor:pointer" onclick="toggleNotiPanel()">
+    <svg viewBox="0 0 18 18" width="16" height="16" stroke="var(--brown)" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2a5 5 0 015 5c0 4 1.5 5 1.5 5H2.5S4 11 4 7a5 5 0 015-5z"/><path d="M7.5 15a1.5 1.5 0 003 0"/></svg>
+    <div class="badge" id="noti-badge">{{ noti_count if noti_count else '' }}</div>
+    <!-- 알림 드롭다운 패널 -->
+    <div id="noti-panel" style="display:none;position:absolute;right:0;top:32px;width:360px;max-height:420px;overflow-y:auto;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);z-index:999;padding:0">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:700;color:var(--brown);font-size:14px">알림</span>
+        <button onclick="readAllNotifications(event)" style="background:none;border:none;color:var(--green);cursor:pointer;font-size:12px;font-family:inherit">모두 읽음</button>
+      </div>
+      <div id="noti-list" style="padding:4px 0"><div style="padding:20px;text-align:center;color:#999;font-size:13px">알림이 없습니다</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Main ═══ -->
+<div class="main">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  {% for cat, msg in messages %}
+  <div class="flash-msg {{ cat }}">{{ msg }}</div>
+  {% endfor %}
+  {% endif %}
+  {% endwith %}
+
+  <!-- ═══ DASHBOARD ═══ -->
+  {% if page == 'dashboard' %}
+  <!-- ── 상단 4개 요약 카드 ── -->
+  <div class="summary-row">
+    <!-- 이번 달 마감 → 캘린더 -->
+    <a href="/calendar" class="summary-card {{ 'danger' if days_left is not none and days_left <= 3 else 'warn' if due_count > 0 else 'success' }}" style="text-decoration:none;color:inherit;cursor:pointer">
+      <div class="number">{{ due_count }}</div>
+      <div class="label">이번 달 마감</div>
+      {% if nearest_item_name %}
+      <div style="font-size:10px;margin-top:4px;opacity:.85;line-height:1.3">
+        {{ nearest_item_name[:12] }}{% if nearest_item_name|length > 12 %}…{% endif %}
+        {% if days_left is not none %}· <strong>D{{ '-' if days_left >= 0 else '+' }}{{ days_left|abs }}</strong>{% endif %}
+      </div>
+      {% endif %}
+    </a>
+    <!-- 재고 경고 → 상품관리 -->
+    <a href="/items" class="summary-card {{ 'danger' if stock_alerts > 0 else 'success' }}" style="text-decoration:none;color:inherit;cursor:pointer">
+      <div class="number">{{ stock_alerts }}</div>
+      <div class="label">재고 경고</div>
+      {% if lowest_item %}
+      <div style="font-size:10px;margin-top:4px;opacity:.85;line-height:1.3">
+        {{ lowest_item.name[:12] }}{% if lowest_item.name|length > 12 %}…{% endif %} · {{ lowest_pct }}%
+      </div>
+      {% endif %}
+    </a>
+    <!-- 파이프라인 → 업무관리 -->
+    <a href="/tasks" class="summary-card info" style="text-decoration:none;color:inherit;cursor:pointer">
+      <div class="number">{{ pipeline_count }}</div>
+      <div class="label">제작 파이프라인</div>
+      {% if pipeline_items %}
+      <div style="font-size:10px;margin-top:4px;opacity:.85;line-height:1.3">
+        {% for pi in pipeline_items[:2] %}{{ pi.name[:8] }}{% if pi.name|length > 8 %}…{% endif %}{{ ', ' if not loop.last else '' }}{% endfor %}{% if pipeline_items|length > 2 %} 외 {{ pipeline_items|length - 2 }}{% endif %}
+      </div>
+      {% endif %}
+    </a>
+    <!-- 마케팅 → 마케팅 -->
+    <a href="/marketing" class="summary-card {{ 'success' if avg_remain_pct > 50 else 'warn' if avg_remain_pct > 25 else 'danger' }}" style="text-decoration:none;color:inherit;cursor:pointer">
+      <div class="number">{{ selling_count }}</div>
+      <div class="label">판매중 상품</div>
+      <div style="font-size:10px;margin-top:4px;opacity:.85">평균 재고 {{ avg_remain_pct }}% 잔여</div>
+    </a>
+  </div>
+
+  <!-- ── 메인 컨텐츠: 나의 업무 + 재고 현황 ── -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card">
+      <h3 style="display:flex;align-items:center;gap:6px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brown)" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        {% if current_user.role in ('소장', '편집장') %}전체 진행 업무{% else %}나의 업무{% endif %}
+      </h3>
+      {% if my_tasks %}
+      {% for t in my_tasks %}
+      <div class="task-card">
+        <div class="task-title">
+          <span class="priority-dot {{ 'urgent' if t.priority=='긴급' else 'high' if t.priority=='높음' else 'normal' }}"></span>
+          {{ t.title }}
+        </div>
+        {% if t.item %}<div style="font-size:10px;color:var(--text-light);margin-top:1px">{{ t.item.name }}{% if current_user.role in ('소장','편집장') and t.assignee %} · {{ t.assignee.name }}{% endif %}</div>{% endif %}
+        <div class="task-meta">
+          <span class="status-badge {% if t.stage == '기획' %}plan{% elif t.stage == '디자인' %}design{% elif t.stage == '제작' %}prod{% else %}stock{% endif %}" style="font-size:10px">{{ t.stage or '' }}</span>
+          {% if t.due_date %}
+          {% set d_left = (t.due_date - today).days %}
+          <span style="{{ 'color:var(--danger);font-weight:600' if d_left <= 3 else '' }}">
+            {{ t.due_date.strftime('%m/%d') }}
+            {% if d_left >= 0 %}(D-{{ d_left }}){% else %}(D+{{ d_left|abs }}){% endif %}
+          </span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty-state">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+        <div style="margin-top:6px">배정된 업무가 없습니다</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h3 style="display:flex;align-items:center;gap:6px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brown)" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        구독 사은품 재고 현황
+      </h3>
+      {% for it in items_a %}
+      {% if it.target_qty and it.target_qty > 0 %}
+      {% set pct = (it.current_stock / it.target_qty * 100)|round(1) if it.current_stock else 0 %}
+      {% set consumed = it.target_qty - (it.current_stock or 0) %}
+      <div class="inv-item">
+        <div class="inv-header">
+          <span class="name">{{ it.name }}</span>
+          <span class="info" style="{{ 'color:var(--danger);font-weight:600' if pct <= 25 else '' }}">{{ '{:,}'.format(it.current_stock or 0) }} / {{ '{:,}'.format(it.target_qty) }}개 ({{ pct }}% 잔여)</span>
+        </div>
+        <div class="inv-bar">
+          <div class="fill {{ 'high' if pct > 50 else 'mid' if pct > 25 else 'low' }}" style="width:{{ [pct, 100]|min|int }}%"></div>
+        </div>
+        <div style="font-size:10px;color:#888;margin-top:2px">소진: {{ '{:,}'.format(consumed) }}개 ({{ (100 - pct)|round(1) }}%)</div>
+      </div>
+      {% endif %}
+      {% endfor %}
+      {% for it in items_a %}
+      {% if it.status == '입고대기' %}
+      <div class="inv-item" style="opacity:.6">
+        <div class="inv-header">
+          <span class="name">{{ it.name }}</span>
+          <span class="info" style="color:var(--warn)">입고대기 — {{ '{:,}'.format(it.target_qty or 0) }}개 예정 {% if it.target_date %}({{ it.target_date.strftime('%m/%d') }}){% endif %}</span>
+        </div>
+        <div class="inv-bar"><div class="fill" style="width:0%;background:#ddd"></div></div>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ═══ TASKS (KANBAN — 5단계 파이프라인) ═══ -->
+  {% elif page == 'tasks' %}
+  <div class="kanban">
+    {% set stage_icons = {'기획':'📝','디자인':'🎨','컨펌/견적':'✅','제작':'🏭','입고':'📦'} %}
+    {% for stage_name in STAGES %}
+    {% set tasks_in_stage = stage_tasks[stage_name] %}
+    <div class="kanban-col" style="border-top:3px solid var(--brown)">
+      <h4>{{ stage_icons[stage_name] }} {{ stage_name }} <span class="count">{{ tasks_in_stage|length }}</span></h4>
+      {% for t in tasks_in_stage %}
+      <div class="task-card" data-id="{{ t.id }}">
+        <div class="task-title">
+          <span class="priority-dot {{ 'urgent' if t.priority=='긴급' else 'high' if t.priority=='높음' else 'normal' if t.priority=='보통' else 'low' }}"></span>
+          {{ t.item.name if t.item else t.title }}
+          {% if t.revision_count %}<span style="font-size:10px;background:#fff3e0;color:#e65100;padding:1px 5px;border-radius:3px;margin-left:4px">수정 #{{ t.revision_count }}</span>{% endif %}
+        </div>
+        <div style="font-size:10px;color:var(--text-light);margin-top:2px">
+          {{ t.assignee.name if t.assignee else '' }}
+          {% if t.due_date %} · 마감 {{ t.due_date.strftime('%m/%d') }}{% endif %}
+        </div>
+        <div style="margin-top:3px"><span style="font-size:10px;padding:2px 6px;border-radius:3px;background:{{ 'var(--green-pale)' if t.status=='진행중' else '#f5f5f5' }};color:{{ 'var(--green-dark)' if t.status=='진행중' else '#999' }}">{{ t.status }}</span></div>
+
+        {# ── 제작 단계: 제작 기간/시작일/진행률 ── #}
+        {% if stage_name == '제작' and t.status == '진행중' %}
+        <div style="margin-top:6px;padding:8px;background:var(--warm-bg);border-radius:6px;font-size:11px">
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px">
+            <span style="font-weight:600;color:var(--brown)">제작 기간</span>
+            <select onchange="updateProduction({{ t.id }}, 'weeks', this.value)" style="font-size:10px;padding:1px 4px;border:1px solid var(--border);border-radius:3px">
+              <option value="">선택</option>
+              {% for w in range(1,9) %}
+              <option value="{{ w }}" {{ 'selected' if t.production_weeks == w else '' }}>{{ w }}주</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% if t.production_start and t.production_weeks %}
+          {% set elapsed_days = (today - t.production_start).days %}
+          {% set total_days = t.production_weeks * 7 %}
+          {% set pct = [(elapsed_days / total_days * 100)|round|int, 100]|min %}
+          {% set weeks_done = (elapsed_days / 7)|round(1) %}
+          <div style="margin-top:4px">
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-mid);margin-bottom:2px">
+              <span>{{ weeks_done }}주 / {{ t.production_weeks }}주</span>
+              <span>{{ pct }}%</span>
+            </div>
+            <div style="height:6px;background:#e0e0e0;border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:{{ pct }}%;background:{{ 'var(--green)' if pct < 80 else 'var(--warn)' if pct < 100 else 'var(--danger)' }};border-radius:3px;transition:.3s"></div>
+            </div>
+            {% if pct >= 100 %}<div style="font-size:10px;color:var(--danger);margin-top:2px;font-weight:600">⚠ 예상 기간 초과</div>{% endif %}
+          </div>
+          {% elif not t.production_start %}
+          <div style="margin-top:4px">
+            <label style="font-size:10px;color:var(--text-mid)">시작일</label>
+            <input type="date" onchange="updateProduction({{ t.id }}, 'start', this.value)" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;width:100%">
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        {# ── 컨펌/견적: 승인/수정/건너뛰기 ── #}
+        {% if stage_name == '컨펌/견적' and t.status == '진행중' %}
+        <div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap">
+          <button onclick="sampleAction({{ t.id }},'approve')" style="padding:3px 10px;font-size:11px;background:var(--green);color:#fff;border:none;border-radius:4px;cursor:pointer">✓ 승인</button>
+          <button onclick="sampleAction({{ t.id }},'revise')" style="padding:3px 10px;font-size:11px;background:#fff3e0;color:#e65100;border:none;border-radius:4px;cursor:pointer">↩ 수정요청</button>
+          <button onclick="sampleAction({{ t.id }},'skip')" style="padding:3px 10px;font-size:11px;background:#f5f5f5;color:#666;border:none;border-radius:4px;cursor:pointer">건너뛰기</button>
+        </div>
+        {% endif %}
+
+        {# ── 첨부파일 목록 ── #}
+        {% if t.attachments %}
+        <div style="margin-top:4px">{% for a in t.attachments %}<a href="{{ url_for('download_file', filename=a.filename) }}" style="font-size:10px;color:var(--green);text-decoration:none" title="{{ a.original_name }}">📎 {{ a.original_name[:20] }}</a> {% endfor %}</div>
+        {% endif %}
+
+        {# ── 파일 첨부 (진행중인 카드에서만) ── #}
+        {% if t.status == '진행중' %}
+        <form method="POST" action="{{ url_for('upload_file') }}" enctype="multipart/form-data" style="margin-top:4px">
+          <input type="hidden" name="task_id" value="{{ t.id }}">
+          <input type="hidden" name="item_id" value="{{ t.item_id or '' }}">
+          <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+            <select name="file_type" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;flex-shrink:0">
+              <option value="디자인시안">시안</option><option value="견적서">견적서</option><option value="샘플사진">샘플사진</option><option value="감리보고서">감리</option><option value="기타">기타</option>
+            </select>
+            <button type="submit" style="font-size:10px;padding:2px 6px;background:var(--green);color:#fff;border:none;border-radius:3px;cursor:pointer;flex-shrink:0">↑ 첨부</button>
+          </div>
+          <input type="file" name="file" required style="font-size:9px;width:100%;margin-top:3px;max-width:100%;box-sizing:border-box">
+        </form>
+        {% endif %}
+
+        {# ── 독립 업무 안내 태그 (상품 미연결) ── #}
+        {% if not t.item %}
+        <div style="margin-top:4px;padding:3px 8px;background:#fff8e1;border-radius:4px;font-size:10px;color:#b38600;display:flex;align-items:center;gap:4px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b38600" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          독립 업무 — 상품 미연결
+        </div>
+        {% endif %}
+
+        {# ── 단계 이동 버튼 ── #}
+        <div style="margin-top:6px;display:flex;gap:4px">
+          {% if t.status == '대기' %}
+          <button onclick="updateTaskStatus({{ t.id }},'진행중')" style="flex:1;padding:3px 0;font-size:11px;background:var(--green);color:#fff;border:none;border-radius:4px;cursor:pointer">시작하기</button>
+          {% elif t.status == '진행중' and stage_name != '컨펌/견적' %}
+            {% if t.item %}
+            <button onclick="advanceTask({{ t.id }})" style="flex:1;padding:3px 0;font-size:11px;background:var(--brown);color:#fff;border:none;border-radius:4px;cursor:pointer">완료 → 다음단계</button>
+            {% else %}
+            <button onclick="completeStandaloneTask({{ t.id }})" style="flex:1;padding:3px 0;font-size:11px;background:var(--brown);color:#fff;border:none;border-radius:4px;cursor:pointer">✓ 완료</button>
+            {% endif %}
+          {% endif %}
+          {% if not t.item %}
+          {# 독립 업무만 수동 상태 이동 허용 #}
+          <select onchange="updateTaskStatus({{ t.id }}, this.value)" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;color:var(--text-light)">
+            <option value="">이동</option>
+            <option value="대기">대기</option>
+            <option value="진행중">진행중</option>
+            <option value="완료">완료</option>
+          </select>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+
+      {% if not tasks_in_stage %}
+      <div style="text-align:center;padding:20px;color:rgba(0,0,0,.2);font-size:12px">비어있음</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  {# ── 완료된 업무 접이식 ── #}
+  {% if done_tasks %}
+  <div class="card" style="margin-top:16px">
+    <h3 onclick="document.getElementById('done-list').style.display=document.getElementById('done-list').style.display==='none'?'block':'none'" style="cursor:pointer">
+      ✓ 완료된 업무 <span style="font-size:12px;color:var(--text-light);font-weight:400">({{ done_tasks|length }}건 — 클릭하여 펼치기)</span>
+    </h3>
+    <div id="done-list" style="display:none;margin-top:12px">
+      <table class="data-table">
+        <thead><tr><th>업무</th><th>상품</th><th>단계</th><th>담당</th><th>완료일</th><th></th></tr></thead>
+        <tbody>
+        {% for t in done_tasks %}
+        <tr style="opacity:.7">
+          <td>{{ t.title }}</td>
+          <td>{% if t.item %}{{ t.item.name }}{% else %}<span style="color:var(--text-light);font-size:11px">독립업무</span> <a href="/items" style="font-size:10px;color:var(--green);text-decoration:none" title="이 기획을 상품으로 등록">→ 상품등록</a>{% endif %}</td>
+          <td>{{ t.stage or '-' }}</td>
+          <td>{{ t.assignee.name if t.assignee else '-' }}</td>
+          <td>{{ t.completed_at.strftime('%m/%d') if t.completed_at else '-' }}</td>
+          <td><select onchange="updateTaskStatus({{ t.id }}, this.value)" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px">
+            <option value="완료" selected>완료</option><option value="진행중">← 되돌리기</option></select></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ═══ ITEMS ═══ -->
+  {% elif page == 'items' %}
+  <div class="card" style="padding:14px 22px;display:flex;justify-content:space-between;align-items:center">
+    <form style="display:flex;gap:8px;align-items:center" method="GET" action="{{ url_for('items') }}">
+      <select name="line" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit">
+        <option value="">전체 라인</option>
+        <option value="A">A. 정기구독</option>
+        <option value="B">B. 앵두/단행본</option>
+        <option value="C">C. 카카오메이커스</option>
+      </select>
+      <select name="cat" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit">
+        <option value="">전체 카테고리</option>
+        {% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+      </select>
+      <input type="text" name="q" placeholder="상품명 검색..." style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;width:180px;font-family:inherit">
+      <button type="submit" class="btn-outline" style="padding:6px 12px;font-size:12px">검색</button>
+    </form>
+    <button class="btn-primary" onclick="document.getElementById('itemModal').classList.add('show')">+ 상품 등록</button>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden;border-radius:12px">
+    <table class="data-table">
+      <thead><tr><th>상품명</th><th>라인</th><th>카테고리</th><th>단가</th><th>재고</th><th>상태</th><th>담당자</th><th style="width:80px">관리</th></tr></thead>
+      <tbody>
+        {% for it in items %}
+        <tr>
+          <td><strong>{{ it.name }}</strong></td>
+          <td>{{ it.line }}</td>
+          <td>{{ it.category_ref.name if it.category_ref else '-' }}</td>
+          <td>
+            {% if it.unit_cost %}
+              {% if it.line == 'A' and it.unit_cost < 4000 %}
+                <span class="cost-ok">{{ '{:,}'.format(it.unit_cost) }}원 ✓</span>
+              {% elif it.line == 'A' and it.unit_cost >= 4000 %}
+                <span class="cost-over">{{ '{:,}'.format(it.unit_cost) }}원 ⚠</span>
+              {% else %}
+                {{ '{:,}'.format(it.unit_cost) }}원
+              {% endif %}
+            {% else %}—{% endif %}
+          </td>
+          <td>{{ '{:,}'.format(it.current_stock) if it.current_stock else '—' }}</td>
+          <td>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
+              <span class="status-badge {{ 'active' if it.status in ['소진중','판매중'] else 'progress' if it.status in ['입고대기','제작중','디자인중'] else 'plan' if it.status=='기획중' else 'done' if it.status in ['소진완료','단종'] else 'danger' }}">
+                {{ it.status }}
+              </span>
+              {% if it.usage == '구독선물+판매' and it.status == '소진중' %}
+              <span class="status-badge active">판매중</span>
+              {% elif it.usage == '구독선물+판매' and it.status == '판매중' %}
+              <span class="status-badge" style="background:#fff3e0;color:#e65100">소진중</span>
+              {% endif %}
+            </div>
+            {% if it.sale_url_smartstore or it.sale_url_aengdu or it.sale_url_positive %}
+            <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">
+              {% if it.sale_url_smartstore %}
+              <a href="{{ it.sale_url_smartstore }}" target="_blank" style="font-size:10px;background:#03C75A;color:#fff;padding:2px 6px;border-radius:4px;text-decoration:none;display:inline-block" title="{{ it.sale_url_smartstore }}">스마트스토어{{ ' 🔍' if 'search?q=' in (it.sale_url_smartstore or '') else '' }}</a>
+              {% endif %}
+              {% if it.sale_url_aengdu %}
+              <a href="{{ it.sale_url_aengdu }}" target="_blank" style="font-size:10px;background:#8E6FBF;color:#fff;padding:2px 6px;border-radius:4px;text-decoration:none;display:inline-block" title="{{ it.sale_url_aengdu }}">앵두{{ ' 🔍' if '?s=' in (it.sale_url_aengdu or '') else '' }}</a>
+              {% endif %}
+              {% if it.sale_url_positive %}
+              <a href="{{ it.sale_url_positive }}" target="_blank" style="font-size:10px;background:var(--brown);color:#fff;padding:2px 6px;border-radius:4px;text-decoration:none;display:inline-block" title="{{ it.sale_url_positive }}">좋은생각{{ ' 🔍' if '?s=' in (it.sale_url_positive or '') else '' }}</a>
+              {% endif %}
+            </div>
+            {% endif %}
+          </td>
+          <td>{{ it.owner.name if it.owner else '-' }}</td>
+          <td style="display:flex;gap:4px;align-items:center">
+            <button type="button" onclick="openEditModal({{ it.id }})" class="btn-edit">수정</button>
+            <form method="POST" action="{{ url_for('delete_item', item_id=it.id) }}" style="display:inline" onsubmit="return confirm('「{{ it.name }}」을(를) 삭제하시겠습니까?\n연결된 업무도 함께 삭제됩니다.')">
+              <button type="submit" class="btn-del">삭제</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:16px">
+    <a href="https://grim-timi-positivethinking-72254524.koyeb.app/" target="_blank" class="btn-pricing">🔗 앵두 가격 추천 로봇에서 판매가 계산하기 →</a>
+  </div>
+
+  <!-- Item Registration Modal -->
+  <div class="modal-overlay" id="itemModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>📋 신규 상품 등록</h3>
+        <button class="modal-close" onclick="document.getElementById('itemModal').classList.remove('show')">×</button>
+      </div>
+      <form method="POST" action="{{ url_for('create_item') }}">
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><label>상품명 <span class="req">*</span></label><input type="text" name="name" required placeholder="예: 앨리스달튼브라운 노트 3종"></div>
+          <div class="form-group"><label>사업 라인 <span class="req">*</span></label>
+            <select name="line" required onchange="autoFillSaleUrls(this.value)"><option value="">선택</option><option value="A">A. 정기구독 사은품</option><option value="B">B. 앵두/단행본</option><option value="C">C. 카카오메이커스</option><option value="B,C">B+C</option></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>카테고리</label>
+            <select name="category_id"><option value="">선택</option>{% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select>
+          </div>
+          <div class="form-group"><label>용도 <span class="req">*</span></label>
+            <select name="usage" required>
+              <option value="판매">판매</option>
+              <option value="구독선물">구독선물</option>
+              <option value="구독선물+판매">구독선물+판매</option>
+              <option value="프로모션">프로모션</option>
+            </select>
+          </div>
+        </div>
+        <!-- 기존 상품 토글 -->
+        <div style="background:#eef7f1;border:1px solid #c3e6cb;border-radius:8px;padding:10px 14px;margin:4px 0 8px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;color:#2d6a4f">
+            <input type="checkbox" name="is_existing" id="isExisting" onchange="toggleExistingMode(this.checked)" style="accent-color:var(--green);width:16px;height:16px">
+            이미 제작 완료된 기존 상품이에요
+          </label>
+          <div id="existingInfo" style="display:none;margin-top:10px">
+            <div class="form-row">
+              <div class="form-group"><label>현재 상태 <span class="req">*</span></label>
+                <select name="item_status" id="itemStatus">
+                  <option value="기획중">기획중</option>
+                  <option value="판매중" selected>판매중</option>
+                  <option value="소진중">소진중</option>
+                  <option value="입고대기">입고대기</option>
+                  <option value="소진완료">소진완료</option>
+                  <option value="단종">단종</option>
+                </select>
+              </div>
+              <div class="form-group"><label>현재 재고 수량</label><input type="number" name="current_stock" id="currentStock" placeholder="예: 2000"></div>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>예상 단가 (원)</label><input type="number" name="unit_cost" placeholder="1750"></div>
+          <div class="form-group"><label>목표 수량</label><input type="number" name="target_qty" placeholder="1500"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>담당자 <span class="req">*</span></label>
+            <select name="owner_id" required>{% for u in users %}<option value="{{ u.id }}" {{ 'selected' if u.id == current_user.id }}>{{ u.name }} ({{ u.role }})</option>{% endfor %}</select>
+          </div>
+          <div class="form-group"><label>목표 입고일</label><input type="date" name="target_date" id="regTargetDate" onchange="updatePreview()"></div>
+        </div>
+        <div id="saleUrlSection" style="background:#f8f6f3;border-radius:8px;padding:12px 14px;margin:4px 0 8px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-size:13px;font-weight:600;color:var(--brown)">🔗 판매 링크</span>
+            <span id="saleUrlHint" style="font-size:11px;color:#888">← 사업 라인을 선택하면 자동으로 채워져요</span>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>🛒 스마트스토어</label><input type="url" name="sale_url_smartstore" id="urlSmartstore" placeholder="https://smartstore.naver.com/positivethinking/..."></div>
+            <div class="form-group"><label>🍒 앵두</label><input type="url" name="sale_url_aengdu" id="urlAengdu" placeholder="https://aengdu.kr/..."></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>📖 좋은생각</label><input type="url" name="sale_url_positive" id="urlPositive" placeholder="https://positive.co.kr/..."></div>
+            <div class="form-group"><label></label></div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group full"><label>비고</label><textarea name="memo" rows="2" placeholder="기획 배경, 참고사항 등"></textarea></div>
+        </div>
+        <div class="auto-tasks-preview" id="autoTasksPreview">
+          <h4>⚡ 입고일 입력 시 → 업무 5건 자동 생성</h4>
+          <div class="task-flow" id="taskFlowPreview">
+            <div class="task-flow-step"><div class="step-icon">📝</div><div class="step-name">기획</div><div class="step-date" id="pd1">—</div></div>
+            <div class="task-flow-arrow">→</div>
+            <div class="task-flow-step"><div class="step-icon">🎨</div><div class="step-name">디자인</div><div class="step-date" id="pd2">—</div></div>
+            <div class="task-flow-arrow">→</div>
+            <div class="task-flow-step" style="position:relative"><div class="step-icon">🔍</div><div class="step-name">컨펌/견적</div><div class="step-date" id="pd2b">—</div><div style="font-size:9px;color:#888;margin-top:2px">↩ 수정 시 디자인으로</div></div>
+            <div class="task-flow-arrow">→</div>
+            <div class="task-flow-step"><div class="step-icon">🏭</div><div class="step-name">제작발주</div><div class="step-date" id="pd3">—</div></div>
+            <div class="task-flow-arrow">→</div>
+            <div class="task-flow-step"><div class="step-icon">📦</div><div class="step-name">입고</div><div class="step-date" id="pd4">—</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-outline" onclick="document.getElementById('itemModal').classList.remove('show')">취소</button>
+        <button type="submit" class="btn-primary" id="submitBtn">✓ 등록하고 업무 자동 생성</button>
+      </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Item Edit Modal -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>✏️ 상품 수정</h3>
+        <button class="modal-close" onclick="document.getElementById('editModal').classList.remove('show')">×</button>
+      </div>
+      <form method="POST" id="editForm" action="">
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><label>상품명 <span class="req">*</span></label><input type="text" name="name" id="editName" required></div>
+          <div class="form-group"><label>사업 라인 <span class="req">*</span></label>
+            <select name="line" id="editLine" required><option value="">선택</option><option value="A">A. 정기구독 사은품</option><option value="B">B. 앵두/단행본</option><option value="C">C. 카카오메이커스</option><option value="B,C">B+C</option></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>카테고리</label>
+            <select name="category_id" id="editCategory"><option value="">선택</option>{% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select>
+          </div>
+          <div class="form-group"><label>용도</label>
+            <select name="usage" id="editUsage">
+              <option value="판매">판매</option>
+              <option value="구독선물">구독선물</option>
+              <option value="구독선물+판매">구독선물+판매</option>
+              <option value="프로모션">프로모션</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>상태</label>
+            <select name="status" id="editStatus">
+              <option value="기획중">기획중</option>
+              <option value="디자인중">디자인중</option>
+              <option value="제작중">제작중</option>
+              <option value="입고대기">입고대기</option>
+              <option value="소진중">소진중</option>
+              <option value="판매중">판매중</option>
+              <option value="소진완료">소진완료</option>
+              <option value="단종">단종</option>
+            </select>
+          </div>
+          <div class="form-group"><label>현재 재고</label><input type="number" name="current_stock" id="editStock" placeholder="0"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>예상 단가 (원)</label><input type="number" name="unit_cost" id="editCost"></div>
+          <div class="form-group"><label>목표 수량</label><input type="number" name="target_qty" id="editTargetQty"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>담당자</label>
+            <select name="owner_id" id="editOwner">{% for u in users %}<option value="{{ u.id }}">{{ u.name }} ({{ u.role }})</option>{% endfor %}</select>
+          </div>
+          <div class="form-group"><label>목표 입고일</label><input type="date" name="target_date" id="editTargetDate"></div>
+        </div>
+        <div style="background:#f8f6f3;border-radius:8px;padding:12px 14px;margin:4px 0 8px">
+          <span style="font-size:13px;font-weight:600;color:var(--brown)">🔗 판매 링크</span>
+          <div class="form-row" style="margin-top:8px">
+            <div class="form-group"><label>🛒 스마트스토어</label><input type="url" name="sale_url_smartstore" id="editUrlSS"></div>
+            <div class="form-group"><label>🍒 앵두</label><input type="url" name="sale_url_aengdu" id="editUrlAG"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>📖 좋은생각</label><input type="url" name="sale_url_positive" id="editUrlPS"></div>
+            <div class="form-group"><label></label></div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group full"><label>비고</label><textarea name="memo" id="editMemo" rows="2"></textarea></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-outline" onclick="document.getElementById('editModal').classList.remove('show')">취소</button>
+        <button type="submit" class="btn-primary">✓ 수정 완료</button>
+      </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══ CALENDAR ═══ -->
+  {% elif page == 'calendar' %}
+
+  {# ── Jinja macro: 캘린더 한 달 그리드 ── #}
+  {% macro render_month(md) %}
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <h3 style="text-align:center;margin:0 0 10px;font-size:16px;color:var(--brown)">{{ md.year }}년 {{ md.month }}월</h3>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);border:1px solid var(--border-light);border-radius:8px;overflow:hidden;flex:1">
+      {# 요일 헤더 #}
+      {% for dow in ['월','화','수','목','금','토','일'] %}
+      <div style="padding:6px 2px;font-size:10px;font-weight:600;text-align:center;border-bottom:2px solid var(--border);background:#faf8f5;
+                  color:{{ 'var(--danger)' if dow=='일' else '#4A8EC2' if dow=='토' else 'var(--text-mid)' }}">{{ dow }}</div>
+      {% endfor %}
+
+      {# 주 단위 행 #}
+      {% for row_start in range(0, md.cal_days|length, 7) %}
+      {% set row_idx = row_start // 7 %}
+      {% set n_lanes = md.max_lanes.get(row_idx, 0) %}
+      {% set row_h = 18 + n_lanes * 18 + 4 %}
+      <div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(7,1fr);position:relative;height:{{ row_h }}px">
+        {% for i in range(row_start, row_start + 7) %}
+        {% set d = md.cal_days[i] if i < md.cal_days|length else None %}
+        {% set is_today = (d is not none and d == today.day and md.month == today.month and md.year == today.year) %}
+        {% set is_weekend = (i % 7 >= 5) %}
+        {% set events = md.day_events.get(d, []) if d else [] %}
+        {% set delivery_events = events|selectattr('type','equalto','delivery')|list %}
+        <div style="border-right:1px solid var(--border-light);border-bottom:1px solid var(--border-light);padding:2px 3px;height:{{ row_h }}px;box-sizing:border-box;overflow:hidden;
+                    {{ 'background:var(--green-pale);' if is_today else 'background:#FAFAF8;' if is_weekend and d else '' }}
+                    {{ 'opacity:.3;' if d is none else '' }}">
+          {% if d %}
+          <div style="font-size:11px;font-weight:{{ '700' if is_today else '400' }};
+                      color:{{ 'var(--green-dark)' if is_today else 'var(--danger)' if i%7==6 else '#4A8EC2' if i%7==5 else 'var(--text)' }}">
+            {{ d }}
+          </div>
+          {% for ev in delivery_events %}
+          <div style="font-size:7px;padding:1px 2px;border-radius:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+                      background:var(--danger);color:#fff;font-weight:600;margin-top:1px" title="{{ ev.full }}">📦{{ ev.label[:6] }}</div>
+          {% endfor %}
+          {% endif %}
+        </div>
+        {% endfor %}
+
+        {# Gantt bars — 상품별 단일 색상 #}
+        {% for b in md.bars %}
+        {% if b.row == row_idx %}
+        <div style="position:absolute;
+                    left:calc({{ b.col }} * (100% / 7) + 2px);
+                    width:calc({{ b.span }} * (100% / 7) - 4px);
+                    top:{{ 18 + b.lane * 18 }}px;
+                    height:14px;
+                    background:{{ b.color }};
+                    opacity:{{ b.opacity }};
+                    border-radius:{{ '7px' if b.round_left else '0' }} {{ '7px' if b.round_right else '0' }} {{ '7px' if b.round_right else '0' }} {{ '7px' if b.round_left else '0' }};
+                    display:flex;align-items:center;padding:0 4px;
+                    cursor:default;z-index:2"
+             title="{{ b.title }}">
+          {% if b.label %}
+          <span style="font-size:7px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;line-height:1">{{ b.label }}</span>
+          {% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endmacro %}
+
+  {# ── 네비게이션 + 범례 ── #}
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <a href="{{ url_for('calendar', y=prev_y, m=prev_m) }}" class="btn-outline" style="padding:6px 14px;font-size:12px">← 이전 2개월</a>
+      <h3 style="margin:0;font-size:16px">{{ m1.year }}년 {{ m1.month }}월 — {{ m2.month }}월</h3>
+      <a href="{{ url_for('calendar', y=next_y, m=next_m) }}" class="btn-outline" style="padding:6px 14px;font-size:12px">다음 2개월 →</a>
+    </div>
+    <div style="display:flex;gap:10px;font-size:11px;flex-wrap:wrap;align-items:center">
+      {% for lg in item_legend %}
+      <span style="display:inline-flex;align-items:center;gap:3px"><span style="width:20px;height:6px;border-radius:3px;background:{{ lg.color }};display:inline-block"></span>{{ lg.label }}</span>
+      {% endfor %}
+      <span style="display:inline-flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:var(--danger);display:inline-block"></span>📦 입고예정</span>
+    </div>
+  </div>
+
+  {# ── 두 달 나란히 (동일 높이) ── #}
+  <div style="display:flex;gap:16px;margin-top:12px;align-items:stretch">
+    {{ render_month(m1) }}
+    {{ render_month(m2) }}
+  </div>
+
+  {# ── 컴팩트 파이프라인 ── #}
+  {% if items_with_dates %}
+  <div class="card" style="margin-top:16px">
+    <h3>🔄 제작 파이프라인</h3>
+    <table class="data-table" style="font-size:12px">
+      <thead><tr><th>상품</th><th style="width:50px">기획</th><th style="width:50px">디자인</th><th style="width:50px">샘플</th><th style="width:50px">제작</th><th style="width:50px">입고</th><th style="width:80px">입고 예정</th></tr></thead>
+      <tbody>
+        {% for item in items_with_dates %}
+        <tr>
+          <td style="font-weight:600">{{ item.name[:20] }}</td>
+          {% for stage in ['기획','디자인','컨펌/견적','제작','입고'] %}
+          {% set st = item.tasks|selectattr('stage','equalto',stage)|list %}
+          {% set t = st[0] if st else None %}
+          {% set sc = {'기획':'var(--brown-light)','디자인':'#7C6DAF','컨펌/견적':'#D4883A','제작':'#2E7D9B','입고':'var(--green)'} %}
+          <td style="text-align:center">
+            {% if t %}
+            {% if t.status == '완료' %}
+            <span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:{{ sc[stage] }};color:#fff;font-size:10px;line-height:22px" title="{{ t.status }} {{ t.completed_at.strftime('%m/%d') if t.completed_at else '' }}">✓</span>
+            {% elif t.status == '진행중' %}
+            <span style="display:inline-block;width:22px;height:22px;border-radius:50%;border:2.5px solid {{ sc[stage] }};background:#fff;animation:pulse 1.5s infinite" title="진행중"></span>
+            {% else %}
+            <span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--border-light)" title="대기"></span>
+            {% endif %}
+            {% else %}
+            <span style="color:var(--border)">—</span>
+            {% endif %}
+          </td>
+          {% endfor %}
+          <td style="font-size:11px;font-weight:600;color:var(--brown)">{{ item.target_date.strftime('%m/%d') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  {# ── 전체 업무 일정 리스트 ── #}
+  {% if tasks_all %}
+  <div class="card" style="margin-top:16px">
+    <h3>📋 전체 업무 일정</h3>
+    <table class="data-table">
+      <thead><tr><th>상품</th><th>단계</th><th>시작</th><th>마감</th><th>담당자</th><th>상태</th></tr></thead>
+      <tbody>
+        {% for t in tasks_all %}
+        <tr style="{{ 'opacity:.5' if t.status=='완료' else '' }}">
+          <td><strong>{{ t.item.name if t.item else t.title }}</strong></td>
+          <td>{{ t.stage or '-' }}</td>
+          <td>{{ t.start_date.strftime('%m/%d') if t.start_date else '-' }}</td>
+          <td>{{ t.due_date.strftime('%m/%d') if t.due_date else '-' }}</td>
+          <td>{{ t.assignee.name if t.assignee else '-' }}</td>
+          <td><span class="status-badge {{ 'active' if t.status=='진행중' else 'plan' if t.status=='대기' else 'done' if t.status=='완료' else 'progress' }}">{{ t.status }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- ═══ INVENTORY ═══ -->
+  {% elif page == 'inventory' %}
+  <!-- 정기구독 사은품 재고 (시각 바) -->
+  <div class="card">
+    <h3>🏪 정기구독 사은품 재고 현황</h3>
+    {% if items_a %}
+    {% for it in items_a %}
+    {% if it.target_qty and it.target_qty > 0 %}
+    {% set pct = (it.current_stock / it.target_qty * 100)|round(1) if it.current_stock else 0 %}
+    {% set consumed = it.target_qty - (it.current_stock or 0) %}
+    <div class="inv-item">
+      <div class="inv-header">
+        <span class="name">{{ it.name }}</span>
+        <span class="info" style="{{ 'color:var(--danger);font-weight:600' if pct <= 25 else '' }}">
+          {{ '{:,}'.format(it.current_stock or 0) }} / {{ '{:,}'.format(it.target_qty) }}개
+          (잔여 {{ pct }}%)
+          — 단가 {{ '{:,}'.format(it.unit_cost) if it.unit_cost else '미정' }}원
+        </span>
+      </div>
+      <div class="inv-bar">
+        <div class="fill {{ 'high' if pct > 50 else 'mid' if pct > 25 else 'low' }}" style="width:{{ [pct, 100]|min|int }}%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:#888;margin-top:2px">
+        <span>소진: {{ '{:,}'.format(consumed) }}개 ({{ (100 - pct)|round(1) }}%)</span>
+        {% if pct <= 25 %}<span style="color:var(--danger);font-weight:600">⚠ 재발주 검토 필요</span>{% endif %}
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% else %}
+    <p style="color:#888;font-size:13px">A라인 재고가 있는 상품이 없습니다.</p>
+    {% endif %}
+  </div>
+
+  <!-- 재발주 알림 -->
+  {% set low_items = [] %}
+  {% for it in all_items %}
+    {% set threshold = (it.target_qty * 0.25)|int if it.target_qty else 100 %}
+    {% if it.current_stock is not none and it.current_stock > 0 and it.current_stock <= threshold and it.status in ['소진중','판매중'] %}
+      {% if low_items.append(it) %}{% endif %}
+    {% endif %}
+  {% endfor %}
+  {% if low_items %}
+  <div class="card" style="border-left:4px solid var(--danger);background:#fff8f8">
+    <h3 style="color:var(--danger)">⚠️ 재발주 필요 상품 (재고 25% 이하)</h3>
+    {% for it in low_items %}
+    <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #ffe0e0">
+      <span style="font-size:11px;background:{{ '#e8f5e9' if 'A' in it.line else '#f3e5f5' if 'B' in it.line else '#fff3e0' }};padding:2px 8px;border-radius:4px">{{ it.line }}</span>
+      <span style="font-weight:600;flex:1">{{ it.name }}</span>
+      <span style="color:var(--danger);font-size:13px;font-weight:600">{{ '{:,}'.format(it.current_stock) }}개 ({{ ((it.current_stock / it.target_qty * 100)|int if it.target_qty else '?') }}%)</span>
+      <form method="POST" action="{{ url_for('create_reorder', item_id=it.id) }}" style="display:flex;gap:6px;align-items:center">
+        <input type="number" name="qty" placeholder="발주 수량" style="width:90px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px">
+        <input type="date" name="target_date" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px">
+        <button type="submit" style="padding:4px 12px;font-size:12px;background:var(--danger);color:#fff;border:none;border-radius:4px;cursor:pointer;white-space:nowrap">🔄 재발주</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- 전체 상품 재고 테이블 -->
+  <div class="card">
+    <h3>📦 전체 상품 재고 현황</h3>
+    <table class="data-table">
+      <thead>
+        <tr><th>라인</th><th>상품명</th><th>상태</th><th>입고 수량</th><th>현재 재고</th><th>잔여율</th><th>단가</th><th>담당</th></tr>
+      </thead>
+      <tbody>
+        {% for it in all_items %}
+        {% set pct = (it.current_stock / it.target_qty * 100)|round(1) if it.target_qty and it.current_stock else 0 %}
+        {% set threshold = (it.target_qty * 0.25)|int if it.target_qty else 100 %}
+        {% set is_low = it.current_stock is not none and it.current_stock > 0 and it.current_stock <= threshold and it.status in ['소진중','판매중'] %}
+        <tr style="{{ 'background:#fff8f8' if is_low else '' }}">
+          <td><span style="font-size:11px;background:{{ '#e8f5e9' if 'A' in it.line else '#f3e5f5' if 'B' in it.line else '#fff3e0' }};padding:2px 8px;border-radius:4px">{{ it.line }}</span></td>
+          <td>{{ it.name }}</td>
+          <td><span class="status-badge {{ 'active' if it.status in ['소진중','판매중'] else 'progress' if it.status in ['입고대기','제작중','디자인중'] else 'plan' if it.status=='기획중' else 'done' if it.status in ['소진완료','단종'] else 'danger' }}">{{ it.status }}</span></td>
+          <td>{{ '{:,}'.format(it.target_qty) if it.target_qty else '—' }}개</td>
+          <td style="font-weight:600;{{ 'color:var(--danger)' if is_low else '' }}">{{ '{:,}'.format(it.current_stock) if it.current_stock else '0' }}개</td>
+          <td>
+            {% if it.target_qty and it.target_qty > 0 %}
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="flex:1;height:8px;background:#eee;border-radius:4px;min-width:60px">
+                <div style="height:100%;border-radius:4px;width:{{ [pct, 100]|min|int }}%;background:{{ 'var(--danger)' if pct <= 25 else 'var(--warn)' if pct <= 50 else 'var(--green)' }}"></div>
+              </div>
+              <span style="font-size:11px;font-weight:600;color:{{ 'var(--danger)' if pct <= 25 else '' }};white-space:nowrap">{{ pct }}%{% if is_low %} ⚠{% endif %}</span>
+            </div>
+            {% else %}—{% endif %}
+          </td>
+          <td>{{ '{:,}'.format(it.unit_cost) if it.unit_cost else '미정' }}원</td>
+          <td>{{ it.owner.name if it.owner else '-' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 주간 재고 입력 -->
+  <div class="card">
+    <h3>📝 주간 재고 입력</h3>
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <!-- 수동 입력 -->
+      <form method="POST" action="{{ url_for('submit_weekly_count') }}" style="display:flex;gap:12px;align-items:flex-end;flex:1;min-width:300px">
+        <div class="form-group" style="flex:1">
+          <label>상품</label>
+          <select name="item_id" required style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit">
+            {% for it in all_items %}<option value="{{ it.id }}">{{ it.name }} ({{ it.line }})</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group" style="width:150px">
+          <label>실측 수량</label>
+          <input type="number" name="counted_qty" required placeholder="수량" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px">
+        </div>
+        <button type="submit" class="btn-primary" style="margin-bottom:14px">확정 등록</button>
+      </form>
+      <!-- PDF 업로드 -->
+      <form method="POST" action="{{ url_for('upload_inventory_pdf') }}" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:flex-end;padding:8px 12px;background:#f8f9fa;border-radius:10px;border:1px dashed var(--border)">
+        <div class="form-group" style="margin-bottom:0">
+          <label style="font-size:12px;color:#888">📄 PDF로 일괄 입력</label>
+          <input type="file" name="pdf_file" accept=".pdf" required style="font-size:12px;max-width:200px">
+        </div>
+        <button type="submit" class="btn-secondary" style="margin-bottom:2px;white-space:nowrap">PDF 업로드</button>
+      </form>
+    </div>
+  </div>
+
+  {% if weekly_counts %}
+  <div class="card">
+    <h3>📊 입력 이력</h3>
+    <table class="data-table">
+      <thead><tr><th>날짜</th><th>상품</th><th>실측 수량</th><th>시스템 수량</th><th>차이</th><th>입력자</th></tr></thead>
+      <tbody>
+        {% for wc in weekly_counts %}
+        <tr>
+          <td>{{ wc.counted_at.strftime('%Y-%m-%d') if wc.counted_at else '-' }}</td>
+          <td>{{ wc.item.name if wc.item else '-' }}</td>
+          <td><strong>{{ '{:,}'.format(wc.counted_qty) }}</strong></td>
+          <td>{{ '{:,}'.format(wc.prev_system_qty) if wc.prev_system_qty else '-' }}</td>
+          <td style="color:{{ 'var(--danger)' if wc.diff and wc.diff < 0 else 'var(--green)' }}">{{ '{:+,}'.format(wc.diff) if wc.diff else '—' }}</td>
+          <td>{{ wc.counter.name if wc.counter else '-' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- ═══ INVENTORY PREVIEW (PDF 파싱 결과) ═══ -->
+  {% elif page == 'inventory_preview' %}
+  <div class="card" style="border-left:4px solid var(--green)">
+    <h3>📄 PDF 재고 데이터 미리보기</h3>
+    <p style="font-size:13px;color:#666;margin-bottom:16px">
+      <strong>{{ pdf_filename }}</strong>에서 추출한 데이터입니다. 수량을 확인/수정한 후 "확정 저장"을 눌러주세요.
+    </p>
+    <form method="POST" action="{{ url_for('confirm_inventory_pdf') }}">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width:30px">#</th>
+            <th>PDF 상품명</th>
+            <th>매칭된 상품</th>
+            <th style="width:140px">수량</th>
+            <th>현재 시스템 재고</th>
+            <th>차이</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in parsed_data %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td style="font-size:12px;color:#888">{{ row.pdf_name }}</td>
+            <td>
+              <select name="item_id" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;width:100%"
+                onchange="updatePrevQty(this, {{ loop.index0 }})">
+                <option value="0">— 매칭 안 함 (건너뜀) —</option>
+                {% for it in all_items %}
+                <option value="{{ it.id }}" data-stock="{{ it.current_stock or 0 }}" {{ 'selected' if row.item_id == it.id else '' }}>{{ it.name }} ({{ it.line }})</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td>
+              <input type="number" name="qty" value="{{ row.qty }}" min="0"
+                style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;width:100%;font-weight:600"
+                oninput="updateDiff({{ loop.index0 }})">
+            </td>
+            <td class="prev-qty-{{ loop.index0 }}" style="color:#888">{{ '{:,}'.format(row.prev_qty) }}개</td>
+            <td class="diff-{{ loop.index0 }}" style="font-weight:600">—</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div style="display:flex;gap:12px;margin-top:16px;justify-content:flex-end">
+        <a href="{{ url_for('inventory') }}" class="btn-secondary" style="text-decoration:none">취소</a>
+        <button type="submit" class="btn-primary">✅ 확정 저장 ({{ parsed_data|length }}건)</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ═══ BOOKS ═══ -->
+  {% elif page == 'books' %}
+  <div class="card">
+    <h3>📚 앵두/단행본 굿즈 프로젝트</h3>
+    {% if items_b %}
+    <table class="data-table">
+      <thead><tr><th>상품명</th><th>카테고리</th><th>단가</th><th>상태</th><th>담당자</th></tr></thead>
+      <tbody>
+        {% for it in items_b %}
+        <tr>
+          <td><strong>{{ it.name }}</strong></td>
+          <td>{{ it.category_ref.name if it.category_ref else '-' }}</td>
+          <td>{{ '{:,}'.format(it.unit_cost) if it.unit_cost else '-' }}원</td>
+          <td><span class="status-badge {{ 'active' if it.status in ['소진중','판매중'] else 'plan' if it.status=='기획중' else 'progress' }}">{{ it.status }}</span></td>
+          <td>{{ it.owner.name if it.owner else '-' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><div class="icon">📚</div>등록된 앵두/단행본 굿즈가 없습니다</div>
+    {% endif %}
+  </div>
+
+  <!-- ═══ KAKAO ═══ -->
+  {% elif page == 'kakao' %}
+  <!-- 이벤트 등록 폼 -->
+  <div class="card">
+    <h3>🛒 새 이벤트 등록</h3>
+    <form method="POST" action="{{ url_for('create_kakao_event') }}">
+      <div class="form-row">
+        <div class="form-group" style="flex:2"><label>이벤트명 <span class="req">*</span></label><input type="text" name="name" required placeholder="예: 2026 가정의달 감사 기획전"></div>
+        <div class="form-group"><label>상태</label>
+          <select name="status"><option value="기획중">기획중</option><option value="준비완료">준비완료</option><option value="진행중">진행중</option><option value="종료">종료</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>시작일</label><input type="date" name="period_start"></div>
+        <div class="form-group"><label>종료일</label><input type="date" name="period_end"></div>
+      </div>
+      <div class="form-group"><label>번들 상품 선택 (복수 선택 가능)</label>
+        <select name="bundle_items" multiple style="min-height:80px">
+          {% for it in items_all %}<option value="{{ it.id }}">{{ it.name }} ({{ it.line }})</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group"><label>메모</label><textarea name="memo" rows="2" placeholder="이벤트 기획 배경, 가격 구성 등"></textarea></div>
+      <button type="submit" class="btn-primary" style="margin-top:8px">🛒 이벤트 등록</button>
+    </form>
+  </div>
+
+  <!-- 이벤트 목록 -->
+  {% if events %}
+  {% for ev in events %}
+  <div class="card" style="border-left:4px solid {{ 'var(--green)' if ev.status=='진행중' else '#f59e0b' if ev.status in ['기획중','준비완료'] else '#999' }}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <h3 style="margin:0 0 4px 0">{{ ev.name }}</h3>
+        <div style="font-size:13px;color:#666">
+          <span class="status-badge {{ 'active' if ev.status=='진행중' else 'plan' if ev.status in ['기획중','준비완료'] else '' }}">{{ ev.status }}</span>
+          {% if ev.period_start %} · {{ ev.period_start.strftime('%Y.%m.%d') }}{% endif %}
+          {% if ev.period_end %} ~ {{ ev.period_end.strftime('%Y.%m.%d') }}{% endif %}
+          {% if ev.total_sold %} · 판매: <strong>{{ ev.total_sold }}건</strong>{% endif %}
+        </div>
+        {% if ev.memo %}<div style="margin-top:6px;font-size:12px;color:#888">{{ ev.memo }}</div>{% endif %}
+        {% if ev.bundles %}
+        {% set bundle_ids = ev.bundles | tojson | default('[]') %}
+        <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">
+          {% for bid in (ev.bundles | replace('[','') | replace(']','') | replace('"','') | replace("'","")).split(',') if bid.strip() %}
+          {% set bitem = items_all | selectattr('id', 'equalto', bid.strip()|int) | first %}
+          {% if bitem %}<span style="background:#f0f7f4;color:var(--green);padding:2px 8px;border-radius:4px;font-size:11px">{{ bitem.name }}</span>{% endif %}
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button onclick="document.getElementById('edit-kakao-{{ev.id}}').style.display=document.getElementById('edit-kakao-{{ev.id}}').style.display==='none'?'block':'none'" class="btn-secondary" style="font-size:12px;padding:4px 10px">수정</button>
+        <form method="POST" action="{{ url_for('delete_kakao_event', event_id=ev.id) }}" onsubmit="return confirm('이벤트를 삭제할까요?')"><button type="submit" class="btn-secondary" style="font-size:12px;padding:4px 10px;color:#dc3545">삭제</button></form>
+      </div>
+    </div>
+    <!-- 수정 폼 (토글) -->
+    <div id="edit-kakao-{{ev.id}}" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border-light)">
+      <form method="POST" action="{{ url_for('update_kakao_event', event_id=ev.id) }}">
+        <div class="form-row">
+          <div class="form-group" style="flex:2"><label>이벤트명</label><input type="text" name="name" value="{{ ev.name }}"></div>
+          <div class="form-group"><label>상태</label>
+            <select name="status">
+              {% for s in ['기획중','준비완료','진행중','종료'] %}<option value="{{ s }}" {{ 'selected' if ev.status==s else '' }}>{{ s }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>시작일</label><input type="date" name="period_start" value="{{ ev.period_start.isoformat() if ev.period_start else '' }}"></div>
+          <div class="form-group"><label>종료일</label><input type="date" name="period_end" value="{{ ev.period_end.isoformat() if ev.period_end else '' }}"></div>
+          <div class="form-group"><label>총 판매량</label><input type="number" name="total_sold" value="{{ ev.total_sold or '' }}" placeholder="판매 건수"></div>
+        </div>
+        <div class="form-group"><label>번들 상품</label>
+          <select name="bundle_items" multiple style="min-height:60px">
+            {% set current_bundles = (ev.bundles | replace('[','') | replace(']','') | replace('"','') | replace("'","")).split(',') if ev.bundles else [] %}
+            {% for it in items_all %}<option value="{{ it.id }}" {{ 'selected' if it.id|string in current_bundles else '' }}>{{ it.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group"><label>메모</label><textarea name="memo" rows="2">{{ ev.memo or '' }}</textarea></div>
+        <button type="submit" class="btn-primary" style="font-size:12px;padding:6px 14px">저장</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="card"><div class="empty-state"><div class="icon">🛒</div>등록된 이벤트가 없습니다</div></div>
+  {% endif %}
+
+  <!-- ═══ IDEAS ═══ -->
+  {% elif page == 'ideas' %}
+  <div class="card">
+    <h3>💡 새 아이디어 제안</h3>
+    <form method="POST" action="{{ url_for('create_idea') }}">
+      <div class="form-row">
+        <div class="form-group" style="flex:2"><label>아이디어 제목 <span class="req">*</span></label><input type="text" name="title" required placeholder="예: 김영갑 사진 엽서 세트"></div>
+        <div class="form-group"><label>사업 라인</label>
+          <select name="line"><option value="">미정</option><option value="A">A. 정기구독</option><option value="B">B. 앵두/단행본</option><option value="C">C. 카카오메이커스</option><option value="B,C">B+C</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:2"><label>설명</label><textarea name="description" rows="2" placeholder="아이디어 배경, 타겟 고객, 예상 단가 등"></textarea></div>
+      </div>
+      <button type="submit" class="btn-primary" style="margin-top:8px">💡 제안하기</button>
+    </form>
+  </div>
+
+  <!-- 아이디어 목록 -->
+  {% set statuses = ['제안됨','검토중','승인','보류','반려'] %}
+  {% for st in statuses %}
+  {% set st_ideas = ideas|selectattr('status','equalto',st)|list %}
+  {% if st_ideas %}
+  <div class="card">
+    <h3>{{ '📨' if st=='제안됨' else '🔍' if st=='검토중' else '✅' if st=='승인' else '⏸️' if st=='보류' else '❌' }} {{ st }} ({{ st_ideas|length }})</h3>
+    {% for idea in st_ideas %}
+    <div style="padding:10px 0;border-bottom:1px solid var(--border-light);display:flex;align-items:flex-start;gap:12px">
+      <div style="flex:1">
+        <div style="font-weight:600;color:var(--brown)">{{ idea.title }}</div>
+        <div style="font-size:12px;color:#666;margin-top:2px">
+          {{ idea.proposer.name }} · {{ idea.created_at.strftime('%m/%d') }}
+          {% if idea.line %}<span style="background:#f0f0f0;padding:1px 6px;border-radius:3px;font-size:11px">{{ idea.line }}</span>{% endif %}
+        </div>
+        {% if idea.description %}<div style="font-size:12px;color:#444;margin-top:4px">{{ idea.description }}</div>{% endif %}
+        {% if idea.reject_reason %}<div style="font-size:12px;color:var(--danger);margin-top:4px">반려 사유: {{ idea.reject_reason }}</div>{% endif %}
+      </div>
+      {% if st in ['제안됨','검토중'] %}
+      <div style="display:flex;gap:4px;flex-shrink:0">
+        {% if st == '제안됨' %}
+        <form method="POST" action="{{ url_for('review_idea', idea_id=idea.id) }}" style="display:inline"><input type="hidden" name="action" value="검토중"><button type="submit" style="padding:4px 10px;font-size:11px;background:#e3f2fd;color:#1565c0;border:none;border-radius:4px;cursor:pointer">🔍 검토시작</button></form>
+        {% endif %}
+        <form method="POST" action="{{ url_for('review_idea', idea_id=idea.id) }}" style="display:inline"><input type="hidden" name="action" value="승인"><button type="submit" style="padding:4px 10px;font-size:11px;background:#e8f5e9;color:#2e7d32;border:none;border-radius:4px;cursor:pointer">✅ 승인</button></form>
+        <form method="POST" action="{{ url_for('review_idea', idea_id=idea.id) }}" style="display:inline"><input type="hidden" name="action" value="보류"><button type="submit" style="padding:4px 10px;font-size:11px;background:#fff3e0;color:#e65100;border:none;border-radius:4px;cursor:pointer">⏸️ 보류</button></form>
+        <form method="POST" action="{{ url_for('review_idea', idea_id=idea.id) }}" style="display:inline" onsubmit="var r=prompt('반려 사유:');if(!r)return false;this.querySelector('[name=reason]').value=r;"><input type="hidden" name="action" value="반려"><input type="hidden" name="reason" value=""><button type="submit" style="padding:4px 10px;font-size:11px;background:#ffebee;color:#c62828;border:none;border-radius:4px;cursor:pointer">❌ 반려</button></form>
+      </div>
+      {% elif st == '승인' %}
+      <a href="{{ url_for('items') }}" style="padding:4px 10px;font-size:11px;background:var(--green);color:#fff;border-radius:4px;text-decoration:none">→ 상품 등록</a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endfor %}
+
+  {% if not ideas %}
+  <div class="card"><div class="empty-state"><div class="icon">💡</div>아직 제안된 아이디어가 없습니다</div></div>
+  {% endif %}
+
+  <!-- ═══ AI CHECK ═══ -->
+  {% elif page == 'ai_check' %}
+  <div class="card">
+    <h3>🤖 AI 제작 타당성 체크 & 가이드</h3>
+    <p style="font-size:12px;color:#666;margin-bottom:12px">새 굿즈를 기획할 때 <strong>Gemini AI</strong>가 타당성, 단가, 리스크를 분석하고, 카테고리별 체크리스트를 제공합니다.</p>
+    {% if not config.get('GEMINI_API_KEY') and not environ_gemini %}
+    <div style="padding:10px 14px;background:#fff3cd;border-radius:8px;font-size:12px;margin-bottom:16px;color:#856404">
+      ⚠️ Gemini API 키가 설정되지 않았습니다. AI 분석을 사용하려면 아래에서 키를 입력하세요.
+      <form method="POST" action="{{ url_for('set_gemini_key') }}" style="display:flex;gap:8px;margin-top:8px">
+        <input type="text" name="api_key" placeholder="Gemini API Key (AIza...)" required style="flex:1;padding:6px 10px;border:1px solid #ffc107;border-radius:6px;font-size:12px">
+        <button type="submit" style="padding:6px 12px;background:#856404;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer">저장</button>
+      </form>
+      <div style="margin-top:6px"><a href="https://aistudio.google.com/apikey" target="_blank" style="color:#0d6efd;text-decoration:underline">Google AI Studio에서 무료 API 키 발급받기 →</a></div>
+    </div>
+    {% else %}
+    <div style="padding:6px 14px;background:#d1fae5;border-radius:8px;font-size:12px;margin-bottom:16px;color:#065f46">✨ Gemini AI 연동 활성화됨</div>
+    {% endif %}
+    <form id="aiCheckForm">
+      <div class="form-row">
+        <div class="form-group" style="flex:2"><label>상품명 <span class="req">*</span></label><input type="text" name="item_name" required placeholder="예: 심봉민 마스킹테이프 4종"></div>
+        <div class="form-group"><label>사업 라인</label>
+          <select name="line"><option value="">선택</option><option value="A">A. 정기구독</option><option value="B">B. 앵두/단행본</option><option value="C">C. 카카오</option><option value="B,C">B+C</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>카테고리</label>
+          <select name="category"><option value="">선택</option>{% for c in categories %}<option value="{{ c.name }}">{{ c.name }}</option>{% endfor %}</select>
+        </div>
+        <div class="form-group"><label>예상 단가 (원)</label><input type="number" name="budget" placeholder="1750"></div>
+        <div class="form-group"><label>목표 수량</label><input type="number" name="target_qty" placeholder="2000"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group full"><label>기획 설명</label><textarea name="description" rows="2" placeholder="기획 배경, 타겟 고객, 참고사항 등"></textarea></div>
+      </div>
+      <button type="submit" class="btn-primary">🤖 분석 시작</button>
+    </form>
+  </div>
+
+  <div id="aiResult" style="display:none">
+    <div class="card" style="border-left:4px solid var(--green)">
+      <h3 id="aiResultTitle">📋 분석 결과</h3>
+      <div id="aiResultContent"></div>
+    </div>
+  </div>
+
+  <!-- ═══ CHECKLIST ═══ -->
+  {% elif page == 'checklist' %}
+  <div class="card">
+    <h3 style="display:flex;align-items:center;gap:8px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      퀄리티 체크리스트
+    </h3>
+    <p style="font-size:12px;color:var(--text-light);margin-bottom:16px">상품별 제작 품질 점검 항목을 관리합니다. 체크리스트가 없으면 [자동 생성] 버튼으로 카테고리에 맞는 항목을 만들 수 있습니다.</p>
+  </div>
+
+  {% if items_checklists %}
+  {% for ic in items_checklists %}
+  <div class="card" id="clCard{{ ic.item.id }}" style="border-left:4px solid {{ 'var(--green)' if ic.pct == 100 else 'var(--warn)' if ic.pct >= 50 else 'var(--brown-light)' }}">
+    <!-- 상품 헤더 -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div>
+        <span style="font-weight:600;color:var(--brown);font-size:15px">{{ ic.item.name }}</span>
+        <span class="status-badge plan" style="margin-left:6px">{{ ic.item.status }}</span>
+        {% if ic.cat_name %}<span style="font-size:11px;color:var(--text-light);margin-left:6px">{{ ic.cat_name }}</span>{% endif %}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <!-- 진행률 -->
+        <div id="clPct{{ ic.item.id }}" style="font-size:13px;font-weight:600;color:{{ 'var(--green)' if ic.pct == 100 else 'var(--brown)' }}">{{ ic.done }}/{{ ic.total }} ({{ ic.pct }}%)</div>
+        <div style="width:80px;height:6px;background:#e8e4e0;border-radius:3px;overflow:hidden">
+          <div id="clBar{{ ic.item.id }}" style="width:{{ ic.pct }}%;height:100%;background:{{ 'var(--green)' if ic.pct == 100 else 'var(--green-light)' }};border-radius:3px;transition:width .3s"></div>
+        </div>
+      </div>
+    </div>
+
+    {% if ic.total == 0 %}
+    <!-- 체크리스트 미생성 -->
+    <div style="text-align:center;padding:20px;background:#faf8f5;border-radius:8px">
+      <div style="font-size:13px;color:var(--text-light);margin-bottom:10px">아직 체크리스트가 없습니다</div>
+      <button onclick="generateChecklist({{ ic.item.id }})" class="btn-primary" style="font-size:13px;padding:6px 16px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px"><path d="M12 5v14M5 12h14"/></svg>
+        자동 생성
+      </button>
+    </div>
+    {% else %}
+    <!-- 체크 항목 목록 -->
+    <div id="clList{{ ic.item.id }}">
+      {% for c in ic.checks %}
+      <div id="clRow{{ c.id }}" style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f0ece8;font-size:13px">
+        <input type="checkbox" {{ 'checked' if c.checked else '' }}
+               onchange="toggleCheck({{ c.id }}, {{ ic.item.id }})"
+               style="accent-color:var(--green);cursor:pointer;min-width:16px">
+        <span style="{{ 'text-decoration:line-through;color:#aaa' if c.checked else '' }}">{{ c.label }}</span>
+        <span style="font-size:10px;color:#bbb;margin-left:auto;white-space:nowrap">{{ c.category }}</span>
+        {% if c.checked and c.checker %}
+        <span style="font-size:10px;color:#aaa">{{ c.checker.name }}</span>
+        {% endif %}
+        <button onclick="deleteCheckItem({{ c.id }}, {{ ic.item.id }})" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:14px;padding:0 2px" title="삭제">&times;</button>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- 항목 추가 + AI 제안 -->
+    <div style="display:flex;gap:6px;margin-top:10px">
+      <input type="text" id="clNew{{ ic.item.id }}" placeholder="항목 직접 추가..." style="flex:1;padding:6px 10px;border:1px solid var(--border-light);border-radius:6px;font-size:12px" onkeydown="if(event.key==='Enter'){event.preventDefault();addCheckItem({{ ic.item.id }})}">
+      <button onclick="addCheckItem({{ ic.item.id }})" style="padding:6px 12px;background:var(--brown);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer">추가</button>
+      <button onclick="aiSuggest({{ ic.item.id }})" style="padding:6px 12px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer" title="AI가 추가 체크항목을 제안합니다">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
+        AI 제안
+      </button>
+    </div>
+
+    <!-- AI 제안 결과 영역 -->
+    <div id="clAI{{ ic.item.id }}" style="display:none;margin-top:10px;padding:12px;background:#f0faf4;border-radius:8px;border:1px solid #c8e6d0">
+      <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:8px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" style="vertical-align:-2px"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
+        AI 추천 항목 — 클릭하면 체크리스트에 추가됩니다
+      </div>
+      <div id="clAISuggestions{{ ic.item.id }}"></div>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="card">
+    <div class="empty-state">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <div style="margin-top:8px">현재 기획/제작 중인 상품이 없습니다</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ═══ COST ═══ -->
+  {% elif page == 'cost' %}
+
+  {# ── 비용 요약 카드 ── #}
+  <div class="card">
+    <h3>💰 비용 관리</h3>
+    <p style="font-size:12px;color:var(--text-light);margin-bottom:16px">상품별 실제 발생 비용을 기록합니다. 예상 단가 대비 실비용을 비교할 수 있습니다. 상세 회계는 위하고에서 관리합니다.</p>
+
+    {# 비용 추가 폼 #}
+    <div style="background:var(--warm-bg);padding:14px;border-radius:8px;margin-bottom:16px">
+      <div style="font-weight:600;font-size:13px;color:var(--brown);margin-bottom:8px">+ 비용 추가</div>
+      <form id="costForm" style="display:flex;flex-wrap:wrap;gap:8px;align-items:end">
+        <div style="flex:1;min-width:120px">
+          <label style="font-size:10px;color:var(--text-light);display:block;margin-bottom:2px">상품</label>
+          <select name="item_id" required style="width:100%;padding:6px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit">
+            <option value="">선택</option>
+            {% for it in items_all %}
+            <option value="{{ it.id }}">{{ it.name[:20] }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div style="flex:1;min-width:120px">
+          <label style="font-size:10px;color:var(--text-light);display:block;margin-bottom:2px">항목명</label>
+          <input type="text" name="label" required placeholder="예: 디자인 외주비" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:4px;font-size:12px;box-sizing:border-box">
+        </div>
+        <div style="min-width:100px">
+          <label style="font-size:10px;color:var(--text-light);display:block;margin-bottom:2px">금액 (원)</label>
+          <input type="number" name="amount" required placeholder="0" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:4px;font-size:12px;box-sizing:border-box">
+        </div>
+        <div style="min-width:110px">
+          <label style="font-size:10px;color:var(--text-light);display:block;margin-bottom:2px">발생일</label>
+          <input type="date" name="cost_date" value="{{ today.isoformat() }}" style="padding:6px;border:1px solid var(--border);border-radius:4px;font-size:12px">
+        </div>
+        <div style="flex:1;min-width:100px">
+          <label style="font-size:10px;color:var(--text-light);display:block;margin-bottom:2px">메모</label>
+          <input type="text" name="note" placeholder="업체명, 비고 등" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:4px;font-size:12px;box-sizing:border-box">
+        </div>
+        <button type="submit" style="padding:6px 16px;background:var(--green);color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;white-space:nowrap">추가</button>
+      </form>
+    </div>
+  </div>
+
+  {# ── 상품별 비용 기록 ── #}
+  {% for ic in item_costs %}
+  {% if ic.records or ic.est_total %}
+  <div class="card" style="border-left:4px solid {{ 'var(--danger)' if ic.diff and ic.diff > 0 else 'var(--green)' if ic.diff and ic.diff <= 0 else 'var(--brown-light)' }}">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div>
+        <span style="font-weight:600;font-size:14px;color:var(--brown)">{{ ic.item.name }}</span>
+        <span style="font-size:11px;color:var(--text-light);margin-left:8px">{{ ic.item.line }}라인</span>
+      </div>
+      <div style="text-align:right;font-size:12px">
+        <div>예상: <strong>{{ '{:,}'.format(ic.est_total) if ic.est_total else '-' }}원</strong>
+          <span style="font-size:10px;color:var(--text-light)">(단가 {{ '{:,}'.format(ic.item.unit_cost) if ic.item.unit_cost else '?' }}원 × {{ '{:,}'.format(ic.item.target_qty) if ic.item.target_qty else '?' }}개)</span>
+        </div>
+        <div style="font-size:14px;font-weight:700;color:{{ 'var(--danger)' if ic.diff and ic.diff > 0 else 'var(--green)' }}">
+          실비용: {{ '{:,}'.format(ic.total) }}원
+          {% if ic.diff is not none %}
+          <span style="font-size:11px">({{ '+' if ic.diff > 0 else '' }}{{ '{:,}'.format(ic.diff) }}원)</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if ic.records %}
+    <table class="data-table" style="font-size:12px">
+      <thead><tr><th>항목</th><th>금액</th><th>발생일</th><th>메모</th><th>등록자</th><th style="width:40px"></th></tr></thead>
+      <tbody>
+        {% for r in ic.records %}
+        <tr>
+          <td><strong>{{ r.label }}</strong></td>
+          <td>{{ '{:,}'.format(r.amount) }}원</td>
+          <td>{{ r.cost_date.strftime('%m/%d') if r.cost_date else '-' }}</td>
+          <td style="font-size:11px;color:var(--text-light)">{{ r.note or '-' }}</td>
+          <td style="font-size:11px">{{ r.adder.name if r.adder else '-' }}</td>
+          <td><button onclick="deleteCost({{ r.id }})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:11px" title="삭제">✕</button></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="font-size:12px;color:var(--text-light);padding:8px 0">아직 비용 기록이 없습니다</div>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% endfor %}
+
+  <!-- ═══ MARKETING ═══ -->
+  {% elif page == 'marketing' %}
+  <div class="card">
+    <h3>📈 판매 상품 마케팅 대시보드</h3>
+    <p style="font-size:12px;color:#666;margin-bottom:16px">현재 판매중/소진중인 상품의 재고 소진 속도, 마케팅 타이밍 추천을 확인하세요. Google Analytics 연동은 배포 후 설정 예정입니다.</p>
+  </div>
+
+  {% if items_data %}
+  {% for d in items_data %}
+  <div class="card" style="border-left:4px solid {{ 'var(--danger)' if d.pct <= 25 else 'var(--warn)' if d.pct <= 50 else 'var(--green)' }}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+      <div>
+        <div style="font-weight:600;font-size:15px;color:var(--brown)">{{ d.item.name }}</div>
+        <div style="font-size:12px;color:#666;margin-top:2px">
+          <span style="background:{{ '#e8f5e9' if 'A' in d.item.line else '#f3e5f5' if 'B' in d.item.line else '#fff3e0' }};padding:1px 6px;border-radius:3px">{{ d.item.line }}</span>
+          {{ d.item.category_ref.name if d.item.category_ref else '' }}
+          · 단가 {{ '{:,}'.format(d.item.unit_cost) if d.item.unit_cost else '미정' }}원
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:24px;font-weight:700;color:{{ 'var(--danger)' if d.pct <= 25 else 'var(--warn)' if d.pct <= 50 else 'var(--green)' }}">{{ d.pct }}%</div>
+        <div style="font-size:11px;color:#888">재고 잔여율</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+      <div style="background:#f8f6f3;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:18px;font-weight:700">{{ '{:,}'.format(d.item.current_stock) }}</div>
+        <div style="font-size:11px;color:#888">현재 재고</div>
+      </div>
+      <div style="background:#f8f6f3;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:18px;font-weight:700">{{ '{:,}'.format(d.weekly_avg) if d.weekly_avg else '—' }}</div>
+        <div style="font-size:11px;color:#888">주간 소진량</div>
+      </div>
+      <div style="background:#f8f6f3;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:18px;font-weight:700">{{ d.remaining_weeks if d.remaining_weeks else '—' }}</div>
+        <div style="font-size:11px;color:#888">잔여 주수</div>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:600;color:var(--brown);margin-bottom:6px">💡 마케팅 추천</div>
+      {% for rec in d.recommendations %}
+      <div style="font-size:12px;padding:2px 0;color:#444">{{ rec }}</div>
+      {% endfor %}
+    </div>
+    {% if d.item.sale_url_smartstore or d.item.sale_url_aengdu %}
+    <div style="margin-top:8px;display:flex;gap:6px">
+      {% if d.item.sale_url_smartstore %}<a href="{{ d.item.sale_url_smartstore }}" target="_blank" style="font-size:11px;background:#03C75A;color:#fff;padding:3px 8px;border-radius:4px;text-decoration:none">스마트스토어 →</a>{% endif %}
+      {% if d.item.sale_url_aengdu %}<a href="{{ d.item.sale_url_aengdu }}" target="_blank" style="font-size:11px;background:#8E6FBF;color:#fff;padding:3px 8px;border-radius:4px;text-decoration:none">앵두 →</a>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="card"><div class="empty-state"><div class="icon">📈</div>현재 판매중/소진중인 상품이 없습니다</div></div>
+  {% endif %}
+
+  <!-- ═══ FEEDBACK ═══ -->
+  {% elif page == 'feedback' %}
+  <!-- PDF 업로드 -->
+  <div class="card">
+    <h3>📄 PDF 업로드 (자동 파싱)</h3>
+    <p style="font-size:12px;color:#888;margin-bottom:12px">더아이앤오 등에서 받은 고객의소리 PDF를 업로드하면 자동으로 피드백이 등록됩니다.</p>
+    <form method="POST" action="{{ url_for('upload_feedback_pdf') }}" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center">
+      <input type="file" name="pdf_file" accept=".pdf" required style="flex:1;font-size:13px">
+      <button type="submit" class="btn-primary" style="white-space:nowrap">📄 PDF 파싱</button>
+    </form>
+  </div>
+
+  <!-- 수동 피드백 등록 -->
+  <div class="card">
+    <h3>💬 피드백 직접 등록</h3>
+    <form method="POST" action="{{ url_for('create_feedback') }}">
+      <div class="form-row">
+        <div class="form-group"><label>날짜</label><input type="date" name="feedback_date" value="{{ today if today else '' }}"></div>
+        <div class="form-group"><label>분류</label>
+          <select name="category_type"><option value="감사">감사</option><option value="불만">불만</option><option value="컨텐츠이슈">컨텐츠이슈</option><option value="기타" selected>기타</option></select>
+        </div>
+        <div class="form-group"><label>채널</label>
+          <select name="channel"><option value="전화">전화</option><option value="메일">메일</option><option value="SNS">SNS</option><option value="고객의소리">고객의소리</option><option value="기타">기타</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:2"><label>내용 <span class="req">*</span></label><textarea name="content" rows="2" required placeholder="피드백 내용을 입력하세요"></textarea></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>관련 상품</label>
+          <select name="item_id"><option value="">없음</option>{% for it in items_all %}<option value="{{ it.id }}">{{ it.name }}</option>{% endfor %}</select>
+        </div>
+        <div class="form-group"><label>고객 참조</label><input type="text" name="customer_ref" placeholder="고객명 또는 구독번호"></div>
+        <div class="form-group"><label>정기구독 구분</label><input type="text" name="book_type" placeholder="예: 정기구독3년, 단행본"></div>
+      </div>
+      <button type="submit" class="btn-primary" style="margin-top:8px">💬 등록</button>
+    </form>
+  </div>
+
+  <!-- 피드백 목록 -->
+  <div class="card">
+    <h3>💬 피드백 목록 ({{ feedbacks|length }}건)</h3>
+    {% if feedbacks %}
+    <table class="data-table">
+      <thead><tr><th>날짜</th><th>분류</th><th>내용</th><th>채널</th><th>고객</th><th>상품</th><th>관리</th></tr></thead>
+      <tbody>
+        {% for fb in feedbacks %}
+        <tr>
+          <td>{{ fb.feedback_date.strftime('%m/%d') if fb.feedback_date else '-' }}</td>
+          <td><span style="font-size:11px;padding:2px 6px;border-radius:4px;background:{{ '#dcfce7' if fb.category_type=='감사' else '#fee2e2' if fb.category_type=='불만' else '#fef3c7' if fb.category_type=='컨텐츠이슈' else '#f3f4f6' }}">{{ fb.category_type or '-' }}</span></td>
+          <td style="max-width:300px;word-break:break-word">{{ fb.content[:120] }}{{ '...' if fb.content|length > 120 else '' }}</td>
+          <td>{{ fb.channel or '-' }}</td>
+          <td>{{ fb.customer_ref or '-' }}</td>
+          <td>{{ fb.item.name[:10] if fb.item else '-' }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('delete_feedback', fb_id=fb.id) }}" onsubmit="return confirm('삭제할까요?')" style="display:inline">
+              <button type="submit" style="background:none;border:none;color:#dc3545;cursor:pointer;font-size:11px">삭제</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><div class="icon">💬</div>등록된 피드백이 없습니다</div>
+    {% endif %}
+  </div>
+
+  <!-- ═══ CATEGORIES ═══ -->
+  {% elif page == 'categories' %}
+  <div class="card">
+    <h3>🏷️ 카테고리 관리</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:20px">
+      {% for c in categories %}
+      <div class="cat-chip">{{ c.name }} <span class="cat-count">{{ c.items|length }}</span></div>
+      {% endfor %}
+    </div>
+    <form method="POST" action="{{ url_for('create_category') }}" style="display:flex;gap:8px;align-items:center;margin-bottom:24px">
+      <input type="text" name="name" placeholder="새 카테고리명 입력..." required style="flex:1;padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit">
+      <button type="submit" class="btn-primary">+ 추가</button>
+    </form>
+    <table class="data-table">
+      <thead><tr><th>카테고리</th><th>등록 상품 수</th><th>관리</th></tr></thead>
+      <tbody>
+        {% for c in categories %}
+        <tr>
+          <td>
+            <span id="catName{{ c.id }}"><strong>{{ c.name }}</strong></span>
+            <form id="catRename{{ c.id }}" method="POST" action="{{ url_for('rename_category', cat_id=c.id) }}" style="display:none;gap:6px;align-items:center">
+              <input type="text" name="name" value="{{ c.name }}" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:13px;font-family:inherit;width:160px">
+              <button type="submit" style="padding:3px 8px;font-size:11px;background:var(--green);color:#fff;border:none;border-radius:4px;cursor:pointer">저장</button>
+              <button type="button" onclick="toggleRename({{ c.id }},false)" style="padding:3px 8px;font-size:11px;background:#eee;border:none;border-radius:4px;cursor:pointer">취소</button>
+            </form>
+          </td>
+          <td>{{ c.items|length }}</td>
+          <td style="display:flex;gap:6px;align-items:center">
+            <button type="button" onclick="toggleRename({{ c.id }},true)" class="btn-edit">수정</button>
+            {% if c.items|length == 0 %}
+            <form method="POST" action="{{ url_for('delete_category', cat_id=c.id) }}" style="display:inline" onsubmit="return confirm('삭제하시겠습니까?')">
+              <button type="submit" class="btn-danger" style="padding:4px 10px;font-size:11px">삭제</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <!-- ═══ ADMIN USERS ═══ -->
+  {% elif page == 'admin_users' %}
+  <div class="card">
+    <h3>➕ 새 사용자 추가</h3>
+    <form method="POST" action="{{ url_for('admin_create_user') }}">
+      <div class="form-row">
+        <div class="form-group"><label>아이디 <span class="req">*</span></label><input type="text" name="username" required placeholder="예: newuser" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit"></div>
+        <div class="form-group"><label>이름 <span class="req">*</span></label><input type="text" name="name" required placeholder="예: 홍길동" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit"></div>
+        <div class="form-group"><label>역할 <span class="req">*</span></label>
+          <select name="role" required style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit">
+            <option value="실무자">실무자</option>
+            <option value="디자이너">디자이너</option>
+            <option value="구독매니저1">구독매니저1</option>
+            <option value="구독매니저2">구독매니저2</option>
+            <option value="행정팀장">행정팀장</option>
+            <option value="편집장">편집장</option>
+            <option value="소장">소장</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>이메일</label><input type="email" name="email" placeholder="email@positive.co.kr" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit"></div>
+        <div class="form-group"><label>초기 비밀번호</label><input type="text" name="password" placeholder="기본값: 1234" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit"></div>
+        <div class="form-group" style="display:flex;align-items:flex-end"><button type="submit" class="btn-primary" style="margin-bottom:14px">+ 추가</button></div>
+      </div>
+    </form>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden;border-radius:12px">
+    <table class="data-table">
+      <thead><tr><th>아이디</th><th>이름</th><th>역할</th><th>이메일</th><th style="width:220px">관리</th></tr></thead>
+      <tbody>
+        {% for u in all_users %}
+        <tr>
+          <td>
+            <span id="uName{{ u.id }}">{{ u.username }}</span>
+          </td>
+          <td>
+            <span id="uDispName{{ u.id }}"><strong>{{ u.name }}</strong></span>
+          </td>
+          <td>
+            <span id="uRole{{ u.id }}"><span class="status-badge {{ 'danger' if u.role in ['소장','편집장'] else 'active' if u.role in ['실무자','디자이너'] else 'progress' }}">{{ u.role }}</span></span>
+          </td>
+          <td><span style="font-size:12px;color:#666">{{ u.email or '-' }}</span></td>
+          <td>
+            <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+              <button type="button" onclick="openUserEdit({{ u.id }})" class="btn-edit">수정</button>
+              {% if u.id != current_user.id %}
+              <form method="POST" action="{{ url_for('admin_delete_user', user_id=u.id) }}" style="display:inline" onsubmit="return confirm('「{{ u.name }}」을(를) 삭제하시겠습니까?\n담당 상품/업무는 미배정으로 변경됩니다.')">
+                <button type="submit" class="btn-del">삭제</button>
+              </form>
+              {% else %}
+              <span style="font-size:10px;color:#888">(나)</span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- User Edit Modal -->
+  <div class="modal-overlay" id="userEditModal">
+    <div class="modal" style="max-width:460px">
+      <div class="modal-header">
+        <h3>✏️ 사용자 정보 수정</h3>
+        <button class="modal-close" onclick="document.getElementById('userEditModal').classList.remove('show')">×</button>
+      </div>
+      <form method="POST" id="userEditForm" action="">
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><label>아이디</label><input type="text" name="username" id="ueUsername" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit"></div>
+          <div class="form-group"><label>이름</label><input type="text" name="name" id="ueName" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>역할</label>
+            <select name="role" id="ueRole" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit">
+              <option value="소장">소장</option>
+              <option value="편집장">편집장</option>
+              <option value="실무자">실무자</option>
+              <option value="디자이너">디자이너</option>
+              <option value="행정팀장">행정팀장</option>
+              <option value="구독매니저1">구독매니저1</option>
+              <option value="구독매니저2">구독매니저2</option>
+            </select>
+          </div>
+          <div class="form-group"><label>이메일</label><input type="email" name="email" id="ueEmail" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit"></div>
+        </div>
+        <div style="border-top:1px solid var(--border-light);margin-top:12px;padding-top:12px">
+          <div class="form-group"><label>비밀번호 재설정 <span style="font-weight:400;color:#888">(빈칸이면 유지)</span></label><input type="text" name="reset_password" placeholder="새 비밀번호 입력" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-outline" onclick="document.getElementById('userEditModal').classList.remove('show')">취소</button>
+        <button type="submit" class="btn-primary">저장</button>
+      </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══ PROFILE ═══ -->
+  {% elif page == 'profile' %}
+  <div class="card" style="max-width:520px">
+    <h3>👤 프로필 설정</h3>
+    <form method="POST" action="{{ url_for('profile') }}">
+      <div class="form-row">
+        <div class="form-group full">
+          <label>표시 이름</label>
+          <input type="text" name="name" value="{{ current_user.name }}" placeholder="표시할 이름 또는 닉네임" style="padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit">
+          <div style="font-size:11px;color:#888;margin-top:4px">대시보드, 재고 담당자, 업무 배정 등에 이 이름이 표시됩니다.</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group full">
+          <label>이메일</label>
+          <input type="email" name="email" value="{{ current_user.email or '' }}" placeholder="email@positive.co.kr" style="padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit">
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border-light);margin:16px 0;padding-top:16px">
+        <div style="font-size:13px;font-weight:600;color:var(--brown);margin-bottom:10px">🔒 비밀번호 변경</div>
+        <div class="form-row">
+          <div class="form-group"><label>새 비밀번호</label><input type="password" name="new_password" placeholder="변경 시에만 입력" style="padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit"></div>
+          <div class="form-group"><label>비밀번호 확인</label><input type="password" name="confirm_password" placeholder="한번 더 입력" style="padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button type="submit" class="btn-primary">저장</button>
+        <a href="{{ url_for('dashboard') }}" class="btn-outline" style="padding:8px 16px;font-size:13px;text-decoration:none;display:inline-flex;align-items:center">취소</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="card" style="max-width:520px;margin-top:16px">
+    <h3 style="font-size:14px;color:#888">📋 내 정보</h3>
+    <div style="display:grid;grid-template-columns:100px 1fr;gap:8px;font-size:13px">
+      <span style="color:#888">아이디</span><span>{{ current_user.username }}</span>
+      <span style="color:#888">역할</span><span>{{ current_user.role }}</span>
+      <span style="color:#888">가입일</span><span>{{ current_user.created_at.strftime('%Y-%m-%d') if current_user.created_at else '-' }}</span>
+    </div>
+  </div>
+
+  {% endif %}
+
+</div>
+
+<script>
+// Task status update
+function updateTaskStatus(taskId, newStatus) {
+  if(!newStatus) return;
+  fetch('/tasks/' + taskId + '/status', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'status=' + encodeURIComponent(newStatus)
+  }).then(r => r.json()).then(d => {
+    if(d.ok) location.reload();
+    else if(d.error) alert(d.error);
+  });
+}
+function completeStandaloneTask(taskId) {
+  fetch('/tasks/' + taskId + '/status', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'status=' + encodeURIComponent('완료')
+  }).then(r => r.json()).then(d => {
+    if(d.ok) {
+      if(confirm('업무가 완료되었습니다.\n\n이 기획을 상품으로 등록하시겠습니까?\n(상품관리 페이지로 이동합니다)')) {
+        window.location.href = '/items';
+      } else {
+        location.reload();
+      }
+    }
+  });
+}
+
+function advanceTask(taskId) {
+  fetch('/tasks/' + taskId + '/advance', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: ''
+  }).then(r => r.json()).then(d => {
+    if(d.ok) location.reload();
+    else if(d.error) alert(d.error);
+  });
+}
+function updateProduction(taskId, field, value) {
+  var body = field === 'weeks' ? 'production_weeks=' + value : 'production_start=' + value;
+  fetch('/tasks/' + taskId + '/production', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: body
+  }).then(r => r.json()).then(d => { if(d.ok) location.reload(); });
+}
+
+// Category rename toggle
+function toggleRename(id, show) {
+  document.getElementById('catName'+id).style.display = show ? 'none' : '';
+  document.getElementById('catRename'+id).style.display = show ? 'flex' : 'none';
+  if(show) document.querySelector('#catRename'+id+' input').focus();
+}
+
+// Item registration preview
+function updatePreview() {
+  var d = document.getElementById('regTargetDate').value;
+  if (!d) return;
+  var target = new Date(d);
+  var stock = new Date(target);
+  var prodEnd = new Date(target); prodEnd.setDate(prodEnd.getDate()-20);
+  var prodStart = new Date(prodEnd); prodStart.setDate(prodStart.getDate()-30);
+  var sampleEnd = new Date(prodStart); sampleEnd.setDate(sampleEnd.getDate()-1);
+  var sampleStart = new Date(sampleEnd); sampleStart.setDate(sampleStart.getDate()-6);
+  var designEnd = new Date(sampleStart); designEnd.setDate(designEnd.getDate()-1);
+  var designStart = new Date(designEnd); designStart.setDate(designStart.getDate()-20);
+  var planEnd = new Date(designStart); planEnd.setDate(planEnd.getDate()-1);
+  var planStart = new Date(planEnd); planStart.setDate(planStart.getDate()-29);
+  function fmt(dt){ return (dt.getMonth()+1)+'/'+dt.getDate(); }
+  document.getElementById('pd1').textContent = fmt(planStart)+' ~ '+fmt(planEnd);
+  document.getElementById('pd2').textContent = fmt(designStart)+' ~ '+fmt(designEnd);
+  document.getElementById('pd2b').textContent = fmt(sampleStart)+' ~ '+fmt(sampleEnd);
+  document.getElementById('pd3').textContent = fmt(prodStart)+' ~ '+fmt(prodEnd);
+  document.getElementById('pd4').textContent = fmt(stock);
+}
+
+// 기존 상품 토글
+function toggleExistingMode(checked) {
+  document.getElementById('existingInfo').style.display = checked ? 'block' : 'none';
+  document.getElementById('autoTasksPreview').style.display = checked ? 'none' : '';
+  document.getElementById('submitBtn').textContent = checked ? '✓ 기존 상품 등록' : '✓ 등록하고 업무 자동 생성';
+  // 기존 상품이면 목표입고일 불필요
+  var dateInput = document.getElementById('regTargetDate');
+  if(checked) { dateInput.value = ''; dateInput.closest('.form-group').style.opacity = '0.4'; }
+  else { dateInput.closest('.form-group').style.opacity = '1'; }
+}
+
+// Auto-fill sale URLs based on business line + item name
+// 사용자가 직접 입력한 URL은 덮어쓰지 않음
+var _userEditedUrls = { ss: false, ag: false, ps: false };
+document.addEventListener('DOMContentLoaded', function(){
+  var ss = document.getElementById('urlSmartstore');
+  var ag = document.getElementById('urlAengdu');
+  var ps = document.getElementById('urlPositive');
+  if(ss) ss.addEventListener('input', function(){ _userEditedUrls.ss = true; });
+  if(ag) ag.addEventListener('input', function(){ _userEditedUrls.ag = true; });
+  if(ps) ps.addEventListener('input', function(){ _userEditedUrls.ps = true; });
+  // 상품명 바뀌면 자동생성된 검색URL만 업데이트 (직접 입력은 건드리지 않음)
+  var nameInput = document.querySelector('input[name="name"]');
+  if(nameInput) nameInput.addEventListener('input', function(){
+    var lineSelect = document.querySelector('select[name="line"]');
+    if(lineSelect && lineSelect.value) autoFillSaleUrls(lineSelect.value);
+  });
+});
+
+function autoFillSaleUrls(line) {
+  var ss = document.getElementById('urlSmartstore');
+  var ag = document.getElementById('urlAengdu');
+  var ps = document.getElementById('urlPositive');
+  var hint = document.getElementById('saleUrlHint');
+  if (!ss) return;
+
+  var nameInput = document.querySelector('input[name="name"]');
+  var itemName = nameInput ? nameInput.value.trim() : '';
+  var q = encodeURIComponent(itemName || '상품명');
+  var preview = itemName ? '"'+itemName+'"' : '상품명';
+
+  // 사용자가 직접 수정하지 않은 필드만 자동 채움
+  if (!_userEditedUrls.ss) ss.value = '';
+  if (!_userEditedUrls.ag) ag.value = '';
+  if (!_userEditedUrls.ps) ps.value = '';
+
+  if (line === 'A') {
+    if(!_userEditedUrls.ss) ss.value = 'https://smartstore.naver.com/positivethinking/search?q=' + q;
+    if(!_userEditedUrls.ps) ps.value = 'https://positive.co.kr/?s=' + q;
+    hint.innerHTML = '✅ A라인 → <b>'+preview+'</b> 검색 URL 자동 생성 (직접 수정하면 유지돼요)';
+    hint.style.color = 'var(--green)';
+  } else if (line === 'B') {
+    if(!_userEditedUrls.ss) ss.value = 'https://smartstore.naver.com/positivethinking/search?q=' + q;
+    if(!_userEditedUrls.ag) ag.value = 'https://aengdu.kr/?s=' + q;
+    hint.innerHTML = '✅ B라인 → <b>'+preview+'</b> 검색 URL 자동 생성 (직접 수정하면 유지돼요)';
+    hint.style.color = 'var(--green)';
+  } else if (line === 'C') {
+    hint.innerHTML = 'ℹ️ C라인(카카오메이커스)은 카카오 내부 링크로 별도 관리돼요';
+    hint.style.color = '#888';
+  } else if (line === 'B,C') {
+    if(!_userEditedUrls.ss) ss.value = 'https://smartstore.naver.com/positivethinking/search?q=' + q;
+    if(!_userEditedUrls.ag) ag.value = 'https://aengdu.kr/?s=' + q;
+    hint.innerHTML = '✅ B+C라인 → <b>'+preview+'</b> 검색 URL 자동 생성';
+    hint.style.color = 'var(--green)';
+  } else {
+    hint.innerHTML = '← 사업 라인을 선택하면 자동으로 채워져요';
+    hint.style.color = '#888';
+  }
+  // 라인 변경 시 사용자 편집 플래그 리셋 (새 라인이니까)
+  _userEditedUrls = { ss: false, ag: false, ps: false };
+}
+
+// User edit modal (admin)
+function openUserEdit(userId) {
+  var rows = document.querySelectorAll('.data-table tbody tr');
+  for (var i = 0; i < rows.length; i++) {
+    var btn = rows[i].querySelector('button[onclick*="openUserEdit(' + userId + ')"]');
+    if (!btn) continue;
+    var cells = rows[i].querySelectorAll('td');
+    document.getElementById('userEditForm').action = '/admin/users/' + userId + '/edit';
+    document.getElementById('ueUsername').value = cells[0].textContent.trim();
+    document.getElementById('ueName').value = cells[1].textContent.trim();
+    // role: extract from badge text
+    var badge = cells[2].querySelector('.status-badge');
+    if (badge) document.getElementById('ueRole').value = badge.textContent.trim();
+    document.getElementById('ueEmail').value = cells[3].textContent.trim() === '-' ? '' : cells[3].textContent.trim();
+    document.getElementById('userEditModal').classList.add('show');
+    break;
+  }
+}
+
+// AI Check form
+var aiForm = document.getElementById('aiCheckForm');
+if (aiForm) {
+  aiForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var btn = aiForm.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.textContent = '🤖 분석 중...';
+    var fd = new FormData(aiForm);
+    fetch('/ai-check/analyze', { method: 'POST', body: fd })
+      .then(r => r.json())
+      .then(d => {
+        btn.disabled = false;
+        btn.textContent = '🤖 분석 시작';
+        var ai = d.ai || {};
+        var html = '';
+        html += '<div style="margin-bottom:16px"><strong>📦 ' + d.item_name + '</strong> (' + d.line_desc + ')';
+        if (ai.no_api_key) html += ' <span style="font-size:11px;background:#fff3cd;padding:2px 8px;border-radius:4px">⚠ 룰 기반 분석</span>';
+        else if (!ai.error) html += ' <span style="font-size:11px;background:#d1fae5;padding:2px 8px;border-radius:4px;color:#065f46">✨ Gemini AI 분석</span>';
+        html += '</div>';
+
+        // AI 타당성 분석
+        if (ai.error) {
+          html += '<div style="margin-bottom:16px;padding:12px;background:#fee2e2;border-radius:8px;font-size:13px;color:#991b1b">' + ai.error + '</div>';
+        } else {
+          if (ai.feasibility) {
+            html += '<div style="margin-bottom:16px"><h4 style="color:var(--brown);margin-bottom:8px">📊 타당성 분석</h4>';
+            html += '<div style="font-size:13px;line-height:1.6;padding:10px 14px;background:#faf8f5;border-radius:8px">' + ai.feasibility + '</div></div>';
+          }
+          if (ai.cost_analysis) {
+            html += '<div style="margin-bottom:16px"><h4 style="color:var(--brown);margin-bottom:8px">💰 단가 분석</h4>';
+            html += '<div style="font-size:13px;line-height:1.6">' + ai.cost_analysis + '</div></div>';
+          }
+          if (ai.lead_time) {
+            html += '<div style="margin-bottom:16px"><h4 style="color:var(--brown);margin-bottom:8px">⏱️ 예상 리드타임</h4>';
+            html += '<div style="font-size:13px">' + ai.lead_time + '</div></div>';
+          }
+          if (ai.risk) {
+            html += '<div style="margin-bottom:16px"><h4 style="color:var(--brown);margin-bottom:8px">⚠️ 리스크</h4>';
+            html += '<div style="font-size:13px;color:#b45309">' + ai.risk + '</div></div>';
+          }
+          if (ai.tip) {
+            html += '<div style="margin-bottom:16px"><h4 style="color:var(--brown);margin-bottom:8px">💡 실무 팁</h4>';
+            html += '<div style="font-size:13px;color:var(--green)">' + ai.tip + '</div></div>';
+          }
+        }
+
+        // 체크리스트 (룰 기반)
+        if (d.checklist && d.checklist.length) {
+          html += '<div style="margin-bottom:16px"><h4 style="color:var(--brown);margin-bottom:8px">✅ 제작 체크리스트 <span style="font-size:11px;color:#999;font-weight:400">(카테고리별 표준)</span></h4>';
+          d.checklist.forEach(function(c) {
+            html += '<label style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:13px;cursor:pointer"><input type="checkbox" style="accent-color:var(--green)"> ' + c + '</label>';
+          });
+          html += '</div>';
+        }
+
+        // 유사 상품
+        if (d.similar && d.similar.length) {
+          html += '<div><h4 style="color:var(--brown);margin-bottom:8px">🔍 유사 상품 (' + d.similar.length + '건)</h4>';
+          html += '<table class="data-table"><thead><tr><th>상품</th><th>라인</th><th>단가</th><th>상태</th><th>재고</th></tr></thead><tbody>';
+          d.similar.forEach(function(s) {
+            html += '<tr><td>' + s.name + '</td><td>' + s.line + '</td><td>' + (s.cost ? s.cost.toLocaleString() + '원' : '-') + '</td><td>' + s.status + '</td><td>' + (s.stock ? s.stock.toLocaleString() + '개' : '0') + '</td></tr>';
+          });
+          html += '</tbody></table></div>';
+        }
+        document.getElementById('aiResultTitle').textContent = '📋 ' + d.item_name + ' 분석 결과';
+        document.getElementById('aiResultContent').innerHTML = html;
+        document.getElementById('aiResult').style.display = 'block';
+        document.getElementById('aiResult').scrollIntoView({ behavior: 'smooth' });
+      })
+      .catch(function(err) {
+        btn.disabled = false;
+        btn.textContent = '🤖 분석 시작';
+        alert('분석 중 오류가 발생했습니다: ' + err.message);
+      });
+  });
+}
+
+// Sample approval actions
+function sampleAction(taskId, action) {
+  var url = '/tasks/' + taskId + '/sample-' + action;
+  if (action === 'skip' && !confirm('컨펌/견적을 건너뛰시겠습니까?')) return;
+  if (action === 'revise' && !confirm('수정 요청하시겠습니까? 디자인 단계로 되돌아갑니다.')) return;
+  fetch(url, { method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'} })
+    .then(r => r.json()).then(d => { if(d.ok) location.reload(); });
+}
+
+// ═══ Checklist functions ═══
+function generateChecklist(itemId) {
+  fetch('/checklist/generate/' + itemId, { method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'} })
+    .then(r => r.json()).then(d => {
+      if(d.ok) location.reload();
+      else alert(d.error || '생성 실패');
+    });
+}
+
+function toggleCheck(checkId, itemId) {
+  fetch('/checklist/toggle/' + checkId, { method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'} })
+    .then(r => r.json()).then(d => {
+      if(d.ok) {
+        var pctEl = document.getElementById('clPct' + itemId);
+        var barEl = document.getElementById('clBar' + itemId);
+        if(pctEl) pctEl.textContent = d.done + '/' + d.total + ' (' + d.pct + '%)';
+        if(barEl) barEl.style.width = d.pct + '%';
+        // Update row style
+        var row = document.getElementById('clRow' + checkId);
+        if(row) {
+          var span = row.querySelector('span');
+          if(d.checked) { span.style.textDecoration = 'line-through'; span.style.color = '#aaa'; }
+          else { span.style.textDecoration = ''; span.style.color = ''; }
+        }
+      }
+    });
+}
+
+function addCheckItem(itemId) {
+  var input = document.getElementById('clNew' + itemId);
+  var label = input.value.trim();
+  if(!label) return;
+  var fd = new FormData();
+  fd.append('label', label);
+  fetch('/checklist/add/' + itemId, { method: 'POST', body: fd })
+    .then(r => r.json()).then(d => {
+      if(d.ok) location.reload();
+      else alert(d.error || '추가 실패');
+    });
+}
+
+function deleteCheckItem(checkId, itemId) {
+  if(!confirm('이 항목을 삭제하시겠습니까?')) return;
+  fetch('/checklist/delete/' + checkId, { method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'} })
+    .then(r => r.json()).then(d => {
+      if(d.ok) {
+        var row = document.getElementById('clRow' + checkId);
+        if(row) row.remove();
+        var pctEl = document.getElementById('clPct' + itemId);
+        var barEl = document.getElementById('clBar' + itemId);
+        if(pctEl) pctEl.textContent = d.done + '/' + d.total + ' (' + d.pct + '%)';
+        if(barEl) barEl.style.width = d.pct + '%';
+      }
+    });
+}
+
+function aiSuggest(itemId) {
+  var container = document.getElementById('clAI' + itemId);
+  var sugDiv = document.getElementById('clAISuggestions' + itemId);
+  sugDiv.innerHTML = '<div style="font-size:12px;color:#888">분석 중...</div>';
+  container.style.display = 'block';
+  fetch('/checklist/ai-suggest/' + itemId, { method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'} })
+    .then(r => r.json()).then(d => {
+      if(d.ok && d.suggestions.length) {
+        var html = '';
+        d.suggestions.forEach(function(s) {
+          html += '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px;cursor:pointer;border-bottom:1px solid #dfeee4" onclick="addAISuggestion(' + itemId + ', this)">';
+          html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>';
+          html += '<span>' + s + '</span></div>';
+        });
+        sugDiv.innerHTML = html;
+      } else {
+        sugDiv.innerHTML = '<div style="font-size:12px;color:#888">추가 제안 항목이 없습니다. 이미 충분히 커버되어 있어요!</div>';
+      }
+    });
+}
+
+function addAISuggestion(itemId, el) {
+  var label = el.querySelector('span').textContent;
+  var fd = new FormData();
+  fd.append('label', label);
+  fetch('/checklist/add/' + itemId, { method: 'POST', body: fd })
+    .then(r => r.json()).then(d => {
+      if(d.ok) {
+        el.style.opacity = '0.4';
+        el.style.pointerEvents = 'none';
+        el.querySelector('svg').outerHTML = '<span style="color:var(--green);font-weight:bold">✓</span>';
+        // Refresh after a small delay to show the check mark
+        setTimeout(function(){ location.reload(); }, 500);
+      }
+    });
+}
+
+// Edit item modal
+function openEditModal(itemId) {
+  fetch('/api/items/' + itemId)
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('editForm').action = '/items/' + itemId + '/edit';
+      document.getElementById('editName').value = d.name;
+      document.getElementById('editLine').value = d.line;
+      document.getElementById('editCategory').value = d.category_id || '';
+      document.getElementById('editUsage').value = d.usage;
+      document.getElementById('editStatus').value = d.status;
+      document.getElementById('editStock').value = d.current_stock || 0;
+      document.getElementById('editCost').value = d.unit_cost || '';
+      document.getElementById('editTargetQty').value = d.target_qty || '';
+      document.getElementById('editOwner').value = d.owner_id || '';
+      document.getElementById('editTargetDate').value = d.target_date;
+      document.getElementById('editUrlSS').value = d.sale_url_smartstore;
+      document.getElementById('editUrlAG').value = d.sale_url_aengdu;
+      document.getElementById('editUrlPS').value = d.sale_url_positive;
+      document.getElementById('editMemo').value = d.memo;
+      document.getElementById('editModal').classList.add('show');
+    });
+}
+
+// ── 비용 관리 ──
+var costForm = document.getElementById('costForm');
+if(costForm) {
+  costForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var fd = new FormData(this);
+    fetch('/cost/add', { method:'POST', body: new URLSearchParams(fd) })
+      .then(r => r.json())
+      .then(d => { if(d.ok) location.reload(); else alert(d.error || '오류'); });
+  });
+}
+function deleteCost(id) {
+  if(!confirm('이 비용 항목을 삭제하시겠습니까?')) return;
+  fetch('/cost/delete/' + id, { method:'POST' })
+    .then(r => r.json())
+    .then(d => { if(d.ok) location.reload(); });
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(function(el){
+  el.addEventListener('click', function(e){ if(e.target===el) el.classList.remove('show'); });
+});
+
+// ═══ 재고 PDF 미리보기 ═══
+function updatePrevQty(sel, idx) {
+  var opt = sel.options[sel.selectedIndex];
+  var stock = opt.getAttribute('data-stock') || '0';
+  var cell = document.querySelector('.prev-qty-' + idx);
+  if (cell) cell.textContent = Number(stock).toLocaleString() + '개';
+  updateDiff(idx);
+}
+function updateDiff(idx) {
+  var prevCell = document.querySelector('.prev-qty-' + idx);
+  var diffCell = document.querySelector('.diff-' + idx);
+  if (!prevCell || !diffCell) return;
+  var prev = parseInt(prevCell.textContent.replace(/[^0-9-]/g, '')) || 0;
+  var rows = document.querySelectorAll('input[name="qty"]');
+  var qty = parseInt(rows[idx].value) || 0;
+  var diff = qty - prev;
+  if (diff > 0) { diffCell.textContent = '+' + diff.toLocaleString(); diffCell.style.color = 'var(--green)'; }
+  else if (diff < 0) { diffCell.textContent = diff.toLocaleString(); diffCell.style.color = 'var(--danger)'; }
+  else { diffCell.textContent = '±0'; diffCell.style.color = '#999'; }
+}
+// 페이지 로드 시 diff 초기 계산
+document.addEventListener('DOMContentLoaded', function() {
+  var qtyInputs = document.querySelectorAll('input[name="qty"]');
+  qtyInputs.forEach(function(_, idx) { updateDiff(idx); });
+});
+
+// ═══ 알림 시스템 ═══
+var notiPanelOpen = false;
+function toggleNotiPanel() {
+  var panel = document.getElementById('noti-panel');
+  notiPanelOpen = !notiPanelOpen;
+  panel.style.display = notiPanelOpen ? 'block' : 'none';
+  if (notiPanelOpen) loadNotifications();
+}
+// 패널 밖 클릭 시 닫기
+document.addEventListener('click', function(e) {
+  var panel = document.getElementById('noti-panel');
+  var notif = e.target.closest('.notif');
+  if (!notif && notiPanelOpen) {
+    panel.style.display = 'none';
+    notiPanelOpen = false;
+  }
+});
+function loadNotifications() {
+  fetch('/api/notifications').then(r=>r.json()).then(function(d) {
+    var list = document.getElementById('noti-list');
+    var badge = document.getElementById('noti-badge');
+    badge.textContent = d.unread_count > 0 ? d.unread_count : '';
+    if (d.notifications.length === 0) {
+      list.innerHTML = '<div style="padding:20px;text-align:center;color:#999;font-size:13px">알림이 없습니다</div>';
+      return;
+    }
+    var html = '';
+    d.notifications.forEach(function(n) {
+      html += '<div class="noti-item" style="padding:10px 16px;border-bottom:1px solid #f0f0f0;font-size:13px" data-id="' + n.id + '">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">';
+      html += '<div style="flex:1">';
+      html += '<div style="color:#333;line-height:1.4">' + n.message + '</div>';
+      html += '<div style="font-size:11px;color:#999;margin-top:3px">' + n.created_at + '</div>';
+      html += '</div>';
+      html += '<div style="display:flex;gap:4px;flex-shrink:0">';
+      if (n.type === '파일첨부' && !n.confirmed) {
+        html += '<button onclick="confirmNoti(event,' + n.id + ')" style="background:var(--green);color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:inherit">확인</button>';
+      }
+      html += '<button onclick="readNoti(event,' + n.id + ')" style="background:#f0f0f0;color:#666;border:none;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:inherit">읽음</button>';
+      html += '</div></div></div>';
+    });
+    list.innerHTML = html;
+  });
+}
+function confirmNoti(e, id) {
+  e.stopPropagation();
+  fetch('/api/notifications/' + id + '/confirm', { method:'POST' }).then(r=>r.json()).then(function(d) {
+    if (d.ok) loadNotifications();
+  });
+}
+function readNoti(e, id) {
+  e.stopPropagation();
+  fetch('/api/notifications/' + id + '/read', { method:'POST' }).then(r=>r.json()).then(function(d) {
+    if (d.ok) loadNotifications();
+  });
+}
+function readAllNotifications(e) {
+  e.stopPropagation();
+  fetch('/api/notifications/read-all', { method:'POST' }).then(r=>r.json()).then(function(d) {
+    if (d.ok) loadNotifications();
+  });
+}
+// 30초마다 알림 뱃지 갱신
+setInterval(function() {
+  fetch('/api/notifications').then(r=>r.json()).then(function(d) {
+    var badge = document.getElementById('noti-badge');
+    badge.textContent = d.unread_count > 0 ? d.unread_count : '';
+  });
+}, 30000);
+</script>
+</body>
+</html>
