@@ -1141,18 +1141,18 @@
   {% elif page == 'ai_check' %}
   <div class="card">
     <h3>🤖 AI 제작 타당성 체크 & 가이드</h3>
-    <p style="font-size:12px;color:#666;margin-bottom:12px">새 굿즈를 기획할 때 <strong>Gemini AI</strong>가 타당성, 단가, 리스크를 분석하고, 카테고리별 체크리스트를 제공합니다.</p>
-    {% if not config.get('GEMINI_API_KEY') and not environ_gemini %}
+    <p style="font-size:12px;color:#666;margin-bottom:12px">새 굿즈를 기획할 때 <strong>Claude AI</strong>가 타당성, 단가, 리스크를 분석하고, 카테고리별 체크리스트를 제공합니다.</p>
+    {% if not config.get('ANTHROPIC_API_KEY') and not environ_claude %}
     <div style="padding:10px 14px;background:#fff3cd;border-radius:8px;font-size:12px;margin-bottom:16px;color:#856404">
-      ⚠️ Gemini API 키가 설정되지 않았습니다. AI 분석을 사용하려면 아래에서 키를 입력하세요.
-      <form method="POST" action="{{ url_for('set_gemini_key') }}" style="display:flex;gap:8px;margin-top:8px">
-        <input type="text" name="api_key" placeholder="Gemini API Key (AIza...)" required style="flex:1;padding:6px 10px;border:1px solid #ffc107;border-radius:6px;font-size:12px">
+      ⚠️ Claude API 키가 설정되지 않았습니다. AI 분석을 사용하려면 아래에서 키를 입력하세요.
+      <form method="POST" action="{{ url_for('set_claude_key') }}" style="display:flex;gap:8px;margin-top:8px">
+        <input type="text" name="api_key" placeholder="Anthropic API Key (sk-ant-...)" required style="flex:1;padding:6px 10px;border:1px solid #ffc107;border-radius:6px;font-size:12px">
         <button type="submit" style="padding:6px 12px;background:#856404;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer">저장</button>
       </form>
-      <div style="margin-top:6px"><a href="https://aistudio.google.com/apikey" target="_blank" style="color:#0d6efd;text-decoration:underline">Google AI Studio에서 무료 API 키 발급받기 →</a></div>
+      <div style="margin-top:6px"><a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:#0d6efd;text-decoration:underline">Anthropic Console에서 API 키 발급받기 →</a></div>
     </div>
     {% else %}
-    <div style="padding:6px 14px;background:#d1fae5;border-radius:8px;font-size:12px;margin-bottom:16px;color:#065f46">✨ Gemini AI 연동 활성화됨</div>
+    <div style="padding:6px 14px;background:#d1fae5;border-radius:8px;font-size:12px;margin-bottom:16px;color:#065f46">✨ Claude AI 연동 활성화됨</div>
     {% endif %}
     <form id="aiCheckForm">
       <div class="form-row">
@@ -1851,7 +1851,7 @@ if (aiForm) {
         var html = '';
         html += '<div style="margin-bottom:16px"><strong>📦 ' + d.item_name + '</strong> (' + d.line_desc + ')';
         if (ai.no_api_key) html += ' <span style="font-size:11px;background:#fff3cd;padding:2px 8px;border-radius:4px">⚠ 룰 기반 분석</span>';
-        else if (!ai.error) html += ' <span style="font-size:11px;background:#d1fae5;padding:2px 8px;border-radius:4px;color:#065f46">✨ Gemini AI 분석</span>';
+        else if (!ai.error) html += ' <span style="font-size:11px;background:#d1fae5;padding:2px 8px;border-radius:4px;color:#065f46">✨ Claude AI 분석</span>';
         html += '</div>';
 
         // AI 타당성 분석

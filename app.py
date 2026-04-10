@@ -18,8 +18,8 @@ if os.path.exists(_env_path):
             if _line and not _line.startswith('#') and '=' in _line:
                 _k, _v = _line.split('=', 1)
                 os.environ.setdefault(_k.strip(), _v.strip())
-if os.environ.get('GEMINI_API_KEY'):
-    app.config['GEMINI_API_KEY'] = os.environ['GEMINI_API_KEY']
+if os.environ.get('ANTHROPIC_API_KEY'):
+    app.config['ANTHROPIC_API_KEY'] = os.environ['ANTHROPIC_API_KEY']
 
 # 보안: SECRET_KEY (환경변수 우선, 없으면 랜덤 생성)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or os.urandom(32).hex()
@@ -1484,31 +1484,31 @@ def ai_suggest_checks(item_id):
 @login_required
 def ai_check():
     categories = Category.query.order_by(Category.name).all()
-    environ_gemini = bool(os.environ.get('GEMINI_API_KEY') or app.config.get('GEMINI_API_KEY'))
-    return render_template('index.html', page='ai_check', categories=categories, environ_gemini=environ_gemini)
+    environ_claude = bool(os.environ.get('ANTHROPIC_API_KEY') or app.config.get('ANTHROPIC_API_KEY'))
+    return render_template('index.html', page='ai_check', categories=categories, environ_claude=environ_claude)
 
 @app.route('/ai-check/set-key', methods=['POST'])
 @login_required
-def set_gemini_key():
+def set_claude_key():
     key = request.form.get('api_key', '').strip()
     if key:
-        app.config['GEMINI_API_KEY'] = key
+        app.config['ANTHROPIC_API_KEY'] = key
         # .env 파일에도 저장 (재시작 시 유지)
         env_path = os.path.join(BASE_DIR, '.env')
         lines = []
         if os.path.exists(env_path):
             with open(env_path, 'r') as f:
-                lines = [l for l in f.readlines() if not l.startswith('GEMINI_API_KEY=')]
-        lines.append(f'GEMINI_API_KEY={key}\n')
+                lines = [l for l in f.readlines() if not l.startswith('ANTHROPIC_API_KEY=')]
+        lines.append(f'ANTHROPIC_API_KEY={key}\n')
         with open(env_path, 'w') as f:
             f.writelines(lines)
-        flash('Gemini API 키가 저장되었습니다!', 'success')
+        flash('Claude API 키가 저장되었습니다!', 'success')
     return redirect(url_for('ai_check'))
 
 @app.route('/ai-check/analyze', methods=['POST'])
 @login_required
 def ai_analyze():
-    """Gemini AI 타당성 분석 + 체크리스트 자동 생성"""
+    """Claude AI 타당성 분석 + 체크리스트 자동 생성"""
     import urllib.request, urllib.error
 
     item_name = request.form.get('item_name', '')
@@ -1531,12 +1531,12 @@ def ai_analyze():
                 'status': si.status, 'stock': si.current_stock
             })
 
-    # ── Gemini API 호출 ──
-    gemini_key = app.config.get('GEMINI_API_KEY') or os.environ.get('GEMINI_API_KEY', '')
+    # ── Claude API 호출 ──
+    claude_key = app.config.get('ANTHROPIC_API_KEY') or os.environ.get('ANTHROPIC_API_KEY', '')
     ai_analysis = ''
     ai_checklist = []
 
-    if gemini_key:
+    if claude_key:
         # 기존 유사상품 정보 컨텍스트
         similar_ctx = ''
         if similar:
@@ -1574,18 +1574,26 @@ def ai_analyze():
 반드시 유효한 JSON만 출력하세요. 다른 텍스트 없이 JSON만."""
 
         try:
-            api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key={gemini_key}"
+            api_url = "https://api.anthropic.com/v1/messages"
             payload = json.dumps({
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"temperature": 0.7, "maxOutputTokens": 1500}
+                "model": "claude-sonnet-4-20250514",
+                "max_tokens": 1500,
+                "messages": [{"role": "user", "content": prompt}]
             }).encode('utf-8')
 
-            req = urllib.request.Request(api_url, data=payload, headers={'Content-Type': 'application/json'})
+            req = urllib.request.Request(api_url, data=payload, headers={
+                'Content-Type': 'application/json',
+                'x-api-key': claude_key,
+                'anthropic-version': '2023-06-01'
+            })
             with urllib.request.urlopen(req, timeout=30) as resp:
                 body = json.loads(resp.read().decode('utf-8'))
 
-            # Gemini 응답 파싱
-            raw_text = body.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
+            # Claude 응답 파싱
+            raw_text = ''
+            for block in body.get('content', []):
+                if block.get('type') == 'text':
+                    raw_text += block.get('text', '')
             # JSON 블록 추출 (```json ... ``` 또는 순수 JSON)
             import re
             json_match = re.search(r'\{[\s\S]*\}', raw_text)
@@ -1597,7 +1605,7 @@ def ai_analyze():
 
         except urllib.error.HTTPError as e:
             error_body = e.read().decode('utf-8') if e.fp else ''
-            ai_analysis = {'error': f'Gemini API 오류 ({e.code}): {error_body[:200]}'}
+            ai_analysis = {'error': f'Claude API 오류 ({e.code}): {error_body[:200]}'}
         except Exception as e:
             ai_analysis = {'error': f'AI 분석 중 오류: {str(e)}'}
 
@@ -1614,14 +1622,14 @@ def ai_analyze():
     default_checklist = ['디자인 시안 확정', '견적 비교 (최소 2곳)', '샘플 제작 및 검수', '포장 방식 결정', '단가 한도 확인', '납기일 확인']
     ai_checklist = checklists.get(item_category, default_checklist)
 
-    if not gemini_key:
+    if not claude_key:
         # API 키 없으면 타당성도 룰 기반 폴백
         lead_times = {'노트류': '약 4~6주', '생활용품': '약 6~10주', '지류': '약 2~4주', '아트': '약 4~8주'}
         cost_note = ''
         if item_line == 'A' and budget:
             cost_note = '❌ 단가 한도 초과' if int(budget) >= 4000 else f'✅ 단가 {int(budget):,}원 적합'
         ai_analysis = {
-            'feasibility': f'{item_name} — 룰 기반 분석입니다. AI 분석을 원하시면 GEMINI_API_KEY를 설정해주세요.',
+            'feasibility': f'{item_name} — 룰 기반 분석입니다. AI 분석을 원하시면 ANTHROPIC_API_KEY를 설정해주세요.',
             'cost_analysis': cost_note or '단가 정보 미입력',
             'lead_time': lead_times.get(item_category, '약 4~8주'),
             'risk': '',
