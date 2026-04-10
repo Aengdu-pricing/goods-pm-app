@@ -1516,9 +1516,10 @@ def ai_analyze():
     item_category = request.form.get('category', '')
     target_qty = request.form.get('target_qty', '')
     budget = request.form.get('budget', '')
+    selling_price = request.form.get('selling_price', '')
     description = request.form.get('description', '')
 
-    line_desc = {'A': '정기구독 사은품', 'B': '앵두/단행본 굿즈', 'C': '카카오메이커스', 'B,C': '앵두+카카오메이커스'}
+    line_desc = {'A': '정기구독 사은품', 'B': '앵두/단행본 굿즈', 'C': '카카오메이커스', 'A,B': '정기구독+앵두/단행본', 'B,C': '앵두+카카오메이커스'}
     line_label = line_desc.get(item_line, item_line or '미정')
 
     # 유사 품목 검색 (DB)
@@ -1553,6 +1554,7 @@ def ai_analyze():
 - 사업 라인: {line_label}
 - 카테고리: {item_category or '미정'}
 - 예상 단가: {budget + '원' if budget else '미정'}
+- 희망 판매가: {selling_price + '원' if selling_price else '미정'}
 - 목표 수량: {target_qty + '개' if target_qty else '미정'}
 - 기획 설명: {description or '없음'}
 {similar_ctx}
@@ -1566,6 +1568,7 @@ def ai_analyze():
 {{
   "feasibility": "타당성 평가 (2~3문장, 장점/주의사항 포함)",
   "cost_analysis": "단가 적정성 분석 (1~2문장)",
+  "margin": "마진 분석 — 단가와 희망 판매가 기반 마진율과 수익성 평가 (1~2문장, 판매가 미입력 시 '판매가 미입력'으로 표시)",
   "lead_time": "예상 제작 기간과 일정 조언 (1~2문장)",
   "risk": "주요 리스크 1~2가지",
   "tip": "성공을 위한 실무 팁 1~2가지"
@@ -1628,9 +1631,19 @@ def ai_analyze():
         cost_note = ''
         if item_line == 'A' and budget:
             cost_note = '❌ 단가 한도 초과' if int(budget) >= 4000 else f'✅ 단가 {int(budget):,}원 적합'
+        margin_note = '판매가 미입력'
+        if budget and selling_price:
+            try:
+                b, sp = int(budget), int(selling_price)
+                if sp > 0:
+                    margin_pct = round((sp - b) / sp * 100, 1)
+                    margin_note = f'마진율 약 {margin_pct}% (단가 {b:,}원 → 판매가 {sp:,}원)'
+            except ValueError:
+                pass
         ai_analysis = {
             'feasibility': f'{item_name} — 룰 기반 분석입니다. AI 분석을 원하시면 ANTHROPIC_API_KEY를 설정해주세요.',
             'cost_analysis': cost_note or '단가 정보 미입력',
+            'margin': margin_note,
             'lead_time': lead_times.get(item_category, '약 4~8주'),
             'risk': '',
             'tip': '',

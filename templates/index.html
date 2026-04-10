@@ -138,7 +138,7 @@
     <!-- 마케팅 → 마케팅 -->
     <a href="/marketing" class="summary-card {{ 'success' if avg_remain_pct > 50 else 'warn' if avg_remain_pct > 25 else 'danger' }}" style="text-decoration:none;color:inherit;cursor:pointer">
       <div class="number">{{ selling_count }}</div>
-      <div class="label">판매중 상품</div>
+      <div class="label">상품 수</div>
       <div style="font-size:10px;margin-top:4px;opacity:.85">평균 재고 {{ avg_remain_pct }}% 잔여</div>
     </a>
   </div>
@@ -460,7 +460,7 @@
         <div class="form-row">
           <div class="form-group"><label>상품명 <span class="req">*</span></label><input type="text" name="name" required placeholder="예: 앨리스달튼브라운 노트 3종"></div>
           <div class="form-group"><label>사업 라인 <span class="req">*</span></label>
-            <select name="line" required onchange="autoFillSaleUrls(this.value)"><option value="">선택</option><option value="A">A. 정기구독 사은품</option><option value="B">B. 앵두/단행본</option><option value="C">C. 카카오메이커스</option><option value="B,C">B+C</option></select>
+            <select name="line" required onchange="autoFillSaleUrls(this.value)"><option value="">선택</option><option value="A">A. 정기구독 사은품</option><option value="B">B. 앵두/단행본</option><option value="C">C. 카카오메이커스</option><option value="A,B">A+B</option><option value="B,C">B+C</option></select>
           </div>
         </div>
         <div class="form-row">
@@ -560,7 +560,7 @@
         <div class="form-row">
           <div class="form-group"><label>상품명 <span class="req">*</span></label><input type="text" name="name" id="editName" required></div>
           <div class="form-group"><label>사업 라인 <span class="req">*</span></label>
-            <select name="line" id="editLine" required><option value="">선택</option><option value="A">A. 정기구독 사은품</option><option value="B">B. 앵두/단행본</option><option value="C">C. 카카오메이커스</option><option value="B,C">B+C</option></select>
+            <select name="line" id="editLine" required><option value="">선택</option><option value="A">A. 정기구독 사은품</option><option value="B">B. 앵두/단행본</option><option value="C">C. 카카오메이커스</option><option value="A,B">A+B</option><option value="B,C">B+C</option></select>
           </div>
         </div>
         <div class="form-row">
@@ -1008,10 +1008,11 @@
         <div class="form-group"><label>시작일</label><input type="date" name="period_start"></div>
         <div class="form-group"><label>종료일</label><input type="date" name="period_end"></div>
       </div>
-      <div class="form-group"><label>번들 상품 선택 (복수 선택 가능)</label>
+      <div class="form-group"><label>번들 상품 선택</label>
         <select name="bundle_items" multiple style="min-height:80px">
           {% for it in items_all %}<option value="{{ it.id }}">{{ it.name }} ({{ it.line }})</option>{% endfor %}
         </select>
+        <div style="font-size:11px;color:#888;margin-top:4px">Ctrl(Mac: Cmd) 누른 채 클릭하면 복수 선택 가능</div>
       </div>
       <div class="form-group"><label>메모</label><textarea name="memo" rows="2" placeholder="이벤트 기획 배경, 가격 구성 등"></textarea></div>
       <button type="submit" class="btn-primary" style="margin-top:8px">🛒 이벤트 등록</button>
@@ -1068,6 +1069,7 @@
             {% set current_bundles = (ev.bundles | replace('[','') | replace(']','') | replace('"','') | replace("'","")).split(',') if ev.bundles else [] %}
             {% for it in items_all %}<option value="{{ it.id }}" {{ 'selected' if it.id|string in current_bundles else '' }}>{{ it.name }}</option>{% endfor %}
           </select>
+          <div style="font-size:11px;color:#888;margin-top:4px">Ctrl(Mac: Cmd) 누른 채 클릭하면 복수 선택 가능</div>
         </div>
         <div class="form-group"><label>메모</label><textarea name="memo" rows="2">{{ ev.memo or '' }}</textarea></div>
         <button type="submit" class="btn-primary" style="font-size:12px;padding:6px 14px">저장</button>
@@ -1087,7 +1089,7 @@
       <div class="form-row">
         <div class="form-group" style="flex:2"><label>아이디어 제목 <span class="req">*</span></label><input type="text" name="title" required placeholder="예: 김영갑 사진 엽서 세트"></div>
         <div class="form-group"><label>사업 라인</label>
-          <select name="line"><option value="">미정</option><option value="A">A. 정기구독</option><option value="B">B. 앵두/단행본</option><option value="C">C. 카카오메이커스</option><option value="B,C">B+C</option></select>
+          <select name="line"><option value="">미정</option><option value="A">A. 정기구독</option><option value="B">B. 앵두/단행본</option><option value="C">C. 카카오메이커스</option><option value="A,B">A+B</option><option value="B,C">B+C</option></select>
         </div>
       </div>
       <div class="form-row">
@@ -1158,7 +1160,7 @@
       <div class="form-row">
         <div class="form-group" style="flex:2"><label>상품명 <span class="req">*</span></label><input type="text" name="item_name" required placeholder="예: 심봉민 마스킹테이프 4종"></div>
         <div class="form-group"><label>사업 라인</label>
-          <select name="line"><option value="">선택</option><option value="A">A. 정기구독</option><option value="B">B. 앵두/단행본</option><option value="C">C. 카카오</option><option value="B,C">B+C</option></select>
+          <select name="line"><option value="">선택</option><option value="A">A. 정기구독</option><option value="B">B. 앵두/단행본</option><option value="C">C. 카카오</option><option value="A,B">A+B</option><option value="B,C">B+C</option></select>
         </div>
       </div>
       <div class="form-row">
@@ -1166,6 +1168,7 @@
           <select name="category"><option value="">선택</option>{% for c in categories %}<option value="{{ c.name }}">{{ c.name }}</option>{% endfor %}</select>
         </div>
         <div class="form-group"><label>예상 단가 (원)</label><input type="number" name="budget" placeholder="1750"></div>
+        <div class="form-group"><label>희망 판매가 (원)</label><input type="number" name="selling_price" placeholder="5000"></div>
         <div class="form-group"><label>목표 수량</label><input type="number" name="target_qty" placeholder="2000"></div>
       </div>
       <div class="form-row">
@@ -1865,6 +1868,10 @@ if (aiForm) {
           if (ai.cost_analysis) {
             html += '<div style="margin-bottom:16px"><h4 style="color:var(--brown);margin-bottom:8px">💰 단가 분석</h4>';
             html += '<div style="font-size:13px;line-height:1.6">' + ai.cost_analysis + '</div></div>';
+          }
+          if (ai.margin) {
+            html += '<div style="margin-bottom:16px"><h4 style="color:var(--brown);margin-bottom:8px">📈 마진 분석</h4>';
+            html += '<div style="font-size:13px;line-height:1.6">' + ai.margin + '</div></div>';
           }
           if (ai.lead_time) {
             html += '<div style="margin-bottom:16px"><h4 style="color:var(--brown);margin-bottom:8px">⏱️ 예상 리드타임</h4>';
