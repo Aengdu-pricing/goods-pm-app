@@ -99,9 +99,9 @@ def seed_database():
         ('좋은생각 수건 블루', 'A', '생활용품', 3510, 500, 250, '소진중', '구독매니저1', None, None, None, '구독선물'),
         ('좋은생각 수건 3종세트', 'A', '생활용품', 3510, 200, 100, '판매중', '구독매니저1', None, None, None, '판매'),
         # ── 다이어리 ──
-        ('좋은생각 다이어리 2026 보라', 'A', '노트류', 3063, 2000, 1900, '소진중', '구독매니저1', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/upkfcbakb2m9', '구독선물+판매'),
-        ('좋은생각 다이어리 2026 파랑', 'A', '노트류', 3063, 2000, 1900, '소진중', '구독매니저1', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/upkfcbakb2m9', '구독선물+판매'),
-        ('좋은생각 다이어리 2026 초록', 'A', '노트류', 3063, 2000, 1900, '소진중', '구독매니저1', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/upkfcbakb2m9', '구독선물+판매'),
+        ('좋은생각 다이어리 보라', 'A', '노트류', 3063, 2000, 1900, '소진중', '구독매니저1', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/upkfcbakb2m9', '구독선물+판매'),
+        ('좋은생각 다이어리 파랑', 'A', '노트류', 3063, 2000, 1900, '소진중', '구독매니저1', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/upkfcbakb2m9', '구독선물+판매'),
+        ('좋은생각 다이어리 초록', 'A', '노트류', 3063, 2000, 1900, '소진중', '구독매니저1', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/upkfcbakb2m9', '구독선물+판매'),
         # ── 명언집 ──
         ('좋은생각 명언집 긍정의한줄', 'A', '명언집', 2717, 3000, 2464, '소진중', '구독매니저1', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/x47zhyrnuydr', '구독선물+판매'),
         # ── 앞치마 ──
