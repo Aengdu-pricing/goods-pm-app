@@ -7,7 +7,6 @@ from werkzeug.utils import secure_filename
 from models import db, User, Category, Item, Task, Comment, InventoryLog, WeeklyCount, Feedback, Idea, KakaoEvent, CostRecord, Performance, Attachment, ChecklistItem, Notification
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'goodthink-goods-2026-secret')
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 # .env 파일에서 환경변수 로드
@@ -21,27 +20,25 @@ if os.path.exists(_env_path):
                 os.environ.setdefault(_k.strip(), _v.strip())
 if os.environ.get('GEMINI_API_KEY'):
     app.config['GEMINI_API_KEY'] = os.environ['GEMINI_API_KEY']
-DB_PATH = os.path.join(BASE_DIR, 'goods_pm_new.db')
 
-# DB 파일이 손상된 경우 대체 경로 사용
-def _check_db_health(path):
-    if not os.path.exists(path):
-        return True  # 없으면 새로 생성 가능
-    try:
-        import sqlite3
-        conn = sqlite3.connect(path)
-        conn.execute("PRAGMA integrity_check")
-        conn.close()
-        return True
-    except Exception:
-        return False
+# 보안: SECRET_KEY (환경변수 우선, 없으면 랜덤 생성)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or os.urandom(32).hex()
 
-if not _check_db_health(DB_PATH):
-    import tempfile
-    DB_PATH = os.path.join(tempfile.gettempdir(), 'goods_pm.db')
-    print(f"  ⚠ 기존 DB 손상. 대체 DB 사용: {DB_PATH}")
+# DB 설정: DATABASE_URL 환경변수가 있으면 PostgreSQL, 없으면 SQLite 폴백
+DATABASE_URL = os.environ.get('DATABASE_URL', '')
+if DATABASE_URL:
+    # Heroku/Koyeb 호환: postgres:// → postgresql://
+    if DATABASE_URL.startswith('postgres://'):
+        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+    }
+else:
+    DB_PATH = os.path.join(BASE_DIR, 'goods_pm_new.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
 
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads')
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -2059,58 +2056,7 @@ def inject_notification_count():
 # ═══════════════════════════════════════════
 # INIT — 스키마 자동 검증 & 재생성
 # ═══════════════════════════════════════════
-def check_schema():
-    """DB 스키마가 최신인지 확인, 아니면 재생성"""
-    import sqlite3
-    if not os.path.exists(DB_PATH):
-        return False  # DB 없으면 새로 만들면 됨
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        # items 테이블 검사
-        cursor = conn.execute("PRAGMA table_info(items)")
-        item_cols = [row[1] for row in cursor.fetchall()]
-        item_required = ['sale_url_smartstore', 'sale_url_aengdu', 'sale_url_positive', 'sale_url_other', 'usage']
-        for col in item_required:
-            if col not in item_cols:
-                conn.close()
-                return True
-        # tasks 테이블 검사
-        cursor = conn.execute("PRAGMA table_info(tasks)")
-        task_cols = [row[1] for row in cursor.fetchall()]
-        task_required = ['revision_count', 'production_weeks', 'production_start']
-        for col in task_required:
-            if col not in task_cols:
-                conn.close()
-                return True
-        # attachments 테이블 존재 확인
-        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='attachments'")
-        if not cursor.fetchone():
-            conn.close()
-            return True
-        # checklist_items 테이블 존재 확인
-        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='checklist_items'")
-        if not cursor.fetchone():
-            conn.close()
-            return True
-        # notifications 테이블 존재 확인
-        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='notifications'")
-        if not cursor.fetchone():
-            conn.close()
-            return True
-        conn.close()
-        return False
-    except Exception as e:
-        print(f"  ⚠ DB 스키마 확인 중 오류: {e}")
-        return True
-
 with app.app_context():
-    if check_schema():
-        print("  ⚠ DB 스키마가 변경되었습니다. 새로 생성합니다...")
-        try:
-            if os.path.exists(DB_PATH):
-                os.remove(DB_PATH)
-        except (PermissionError, OSError):
-            pass
     db.create_all()
     seed_database()
 
