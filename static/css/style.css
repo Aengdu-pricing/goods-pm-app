@@ -6,7 +6,7 @@
   --bg:#FAFAF8; --card:#FFFFFF; --border:#E8E4DF; --border-light:#F0ECE7;
   --text:#3D3027; --text-light:#8B7E74; --text-mid:#6B5F55;
   --danger:#C4463A; --warn:#D4883A; --success:#2EAD6B;
-  --sidebar-w:230px; --warm-bg:#F5F2ED;
+  --sidebar-w:200px; --warm-bg:#F5F2ED;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
