@@ -88,20 +88,35 @@ def seed_database():
 
     # Items: (name, line, cat, cost, target_qty, stock, status, owner, target_date, smartstore, aengdu, usage)
     #   target_qty = 입고 수량 (100%), stock = 현재 잔여 수량
+    #   네이밍 룰: [주체] [카테고리] [이름] [변형] [버전]
     items_data = [
-        ('수건 (3색)', 'A', '생활용품', 3510, 3000, 1500, '소진중', '구독매니저1', None, None, None, '구독선물'),
-        ('다이어리 (보라)', 'A', '노트류', 3063, 2000, 1900, '소진중', '구독매니저1', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/upkfcbakb2m9', '구독선물+판매'),
-        ('다이어리 (파랑)', 'A', '노트류', 3063, 2000, 1900, '소진중', '구독매니저1', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/upkfcbakb2m9', '구독선물+판매'),
-        ('다이어리 (초록)', 'A', '노트류', 3063, 2000, 1900, '소진중', '구독매니저1', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/upkfcbakb2m9', '구독선물+판매'),
-        ("명언집 '긍정의 한줄'", 'A', '명언집', 2717, 3000, 2464, '소진중', '구독매니저1', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/x47zhyrnuydr', '구독선물+판매'),
-        ('앞치마', 'A', '생활용품', 8580, 1500, 0, '입고대기', '구독매니저1', date(2026,4,30), None, None, '구독선물'),
-        ('심봉민 스페셜 커버 노트 (조용히 쌓인 기억)', 'B,C', '노트류', 1750, 500, 430, '판매중', '실무자', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/4hw5x4vw8frn', '판매'),
-        ('심봉민 스페셜 커버 노트 (뭉게뭉게 피어나는 밤)', 'B,C', '노트류', 1750, 500, 460, '판매중', '실무자', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/36ddmcmrw4a5', '판매'),
-        ('심봉민 스페셜 커버 노트 (기억이 멈춘 섬)', 'B,C', '노트류', 1750, 500, 480, '판매중', '실무자', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/dzb9dc36752u', '판매'),
-        ('심봉민 스페셜 커버 노트 (나를 기다린 다롱이)', 'B,C', '노트류', 1750, 500, 490, '판매중', '실무자', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/k5btugqv8mzw', '판매'),
-        ('[한정판] 다비드 자맹 - On joue 고블렛잔', 'B', '생활용품', 26000, 200, 165, '판매중', '실무자', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/ddcpvdtez4wh', '판매'),
+        # ── 수건 (구독선물용 6색 + 판매용 3종세트) ──
+        ('좋은생각 수건 연핑크', 'A', '생활용품', 3510, 500, 250, '소진중', '구독매니저1', None, None, None, '구독선물'),
+        ('좋은생각 수건 민트', 'A', '생활용품', 3510, 500, 250, '소진중', '구독매니저1', None, None, None, '구독선물'),
+        ('좋은생각 수건 보라', 'A', '생활용품', 3510, 500, 250, '소진중', '구독매니저1', None, None, None, '구독선물'),
+        ('좋은생각 수건 핑크', 'A', '생활용품', 3510, 500, 250, '소진중', '구독매니저1', None, None, None, '구독선물'),
+        ('좋은생각 수건 화이트', 'A', '생활용품', 3510, 500, 250, '소진중', '구독매니저1', None, None, None, '구독선물'),
+        ('좋은생각 수건 블루', 'A', '생활용품', 3510, 500, 250, '소진중', '구독매니저1', None, None, None, '구독선물'),
+        ('좋은생각 수건 3종세트', 'A', '생활용품', 3510, 200, 100, '판매중', '구독매니저1', None, None, None, '판매'),
+        # ── 다이어리 ──
+        ('좋은생각 다이어리 2026 보라', 'A', '노트류', 3063, 2000, 1900, '소진중', '구독매니저1', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/upkfcbakb2m9', '구독선물+판매'),
+        ('좋은생각 다이어리 2026 파랑', 'A', '노트류', 3063, 2000, 1900, '소진중', '구독매니저1', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/upkfcbakb2m9', '구독선물+판매'),
+        ('좋은생각 다이어리 2026 초록', 'A', '노트류', 3063, 2000, 1900, '소진중', '구독매니저1', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/upkfcbakb2m9', '구독선물+판매'),
+        # ── 명언집 ──
+        ('좋은생각 명언집 긍정의한줄', 'A', '명언집', 2717, 3000, 2464, '소진중', '구독매니저1', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/x47zhyrnuydr', '구독선물+판매'),
+        # ── 앞치마 ──
+        ('좋은생각 앞치마 노랑', 'A', '생활용품', 8580, 1500, 0, '입고대기', '구독매니저1', date(2026,4,30), None, None, '구독선물'),
+        # ── 심봉민 노트 ──
+        ('심봉민 노트 조용히쌓인기억', 'B,C', '노트류', 1750, 500, 430, '판매중', '실무자', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/4hw5x4vw8frn', '판매'),
+        ('심봉민 노트 뭉게뭉게피어나는밤', 'B,C', '노트류', 1750, 500, 460, '판매중', '실무자', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/36ddmcmrw4a5', '판매'),
+        ('심봉민 노트 기억이멈춘섬', 'B,C', '노트류', 1750, 500, 480, '판매중', '실무자', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/dzb9dc36752u', '판매'),
+        ('심봉민 노트 나를기다린다롱이', 'B,C', '노트류', 1750, 500, 490, '판매중', '실무자', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/k5btugqv8mzw', '판매'),
+        # ── 다비드자맹 고블렛잔 ──
+        ('다비드자맹 고블렛잔 OnJoue 한정판', 'B', '생활용품', 26000, 200, 165, '판매중', '실무자', None, 'https://smartstore.naver.com/positivethinking', 'https://aengdu.kr/products/ddcpvdtez4wh', '판매'),
+        # ── 앨리스달튼브라운 노트 ──
         ('앨리스달튼브라운 노트 3종', 'B', '노트류', 1750, 1500, 0, '기획중', '실무자', date(2026,7,15), None, None, '판매'),
-        ('칭찬노트 (리뉴얼)', 'B,C', '노트류', None, None, 0, '기획중', '실무자', None, None, None, '판매'),
+        # ── 칭찬노트 ──
+        ('좋은생각 노트 칭찬노트 리뉴얼1', 'B,C', '노트류', None, None, 0, '기획중', '실무자', None, None, None, '판매'),
     ]
     items = {}
     for name, line, cat_name, cost, tgt_qty, stock, status, owner_role, tdate, smartstore, aengdu, usage in items_data:
@@ -113,7 +128,7 @@ def seed_database():
         items[name] = it
     db.session.flush()
 
-    # Tasks for 앨리스 노트 (5단계)
+    # Tasks for 앨리스달튼브라운 노트 (5단계)
     alice = items['앨리스달튼브라운 노트 3종']
     tasks_data = [
         ('앨리스 노트 기획', '기획', '대기', date(2026,4,1), date(2026,4,30), '실무자', '높음'),
@@ -130,9 +145,9 @@ def seed_database():
     # Some more tasks
     extra_tasks = [
         ('새 명언집 기획 착수', None, '기획', '진행중', date(2026,4,1), date(2026,4,7), '편집장', '긴급'),
-        ('수건 1,500개 입고 확인', items['수건 (3색)'].id, '입고', '대기', date(2026,4,16), date(2026,4,16), '구독매니저1', '높음'),
-        ('칭찬노트 리뉴얼 기획', items['칭찬노트 (리뉴얼)'].id, '기획', '대기', date(2026,4,1), date(2026,4,15), '실무자', '높음'),
-        ('앞치마(노랑) 입고 확인', items['앞치마'].id, '입고', '대기', date(2026,4,30), date(2026,4,30), '구독매니저1', '보통'),
+        ('수건 입고 확인', items['좋은생각 수건 연핑크'].id, '입고', '대기', date(2026,4,16), date(2026,4,16), '구독매니저1', '높음'),
+        ('칭찬노트 리뉴얼 기획', items['좋은생각 노트 칭찬노트 리뉴얼1'].id, '기획', '대기', date(2026,4,1), date(2026,4,15), '실무자', '높음'),
+        ('좋은생각 앞치마 노랑 입고 확인', items['좋은생각 앞치마 노랑'].id, '입고', '대기', date(2026,4,30), date(2026,4,30), '구독매니저1', '보통'),
     ]
     for title, item_id, stage, status, start, due, owner_role, priority in extra_tasks:
         t = Task(title=title, item_id=item_id, stage=stage, status=status,
