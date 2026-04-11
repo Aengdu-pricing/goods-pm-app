@@ -1128,11 +1128,15 @@ def inventory():
     selling_items = Item.query.filter(Item.status.in_(['판매중', '소진중'])).order_by(Item.line, Item.name).all()
     items_data = []
     for it in selling_items:
-        wks = WeeklyCount.query.filter_by(item_id=it.id).order_by(WeeklyCount.counted_at.desc()).limit(4).all()
+        # 주간소진량: 최소 2주 ~ 최대 16주(약 4개월), 데이터 쌓이는 만큼 윈도우 확대
+        wks = WeeklyCount.query.filter_by(item_id=it.id).order_by(WeeklyCount.counted_at.desc()).limit(16).all()
         weekly_avg = 0
         if len(wks) >= 2:
-            total_diff = sum(abs(w.diff) for w in wks if w.diff and w.diff < 0)
-            weekly_avg = total_diff // len(wks) if total_diff else 0
+            # 실제 소진(diff < 0)이 일어난 주만 집계
+            consume_weeks = [w for w in wks if w.diff and w.diff < 0]
+            total_consumed = sum(abs(w.diff) for w in consume_weeks)
+            num_weeks = len(consume_weeks)
+            weekly_avg = round(total_consumed / num_weeks) if num_weeks > 0 else 0
         remaining_weeks = None
         if weekly_avg > 0 and it.current_stock:
             remaining_weeks = it.current_stock // weekly_avg
