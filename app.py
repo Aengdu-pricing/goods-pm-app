@@ -226,7 +226,7 @@ def dashboard():
 
     # ── 나의 업무 + 재고 현황 (기존) ──
     # 소장/편집장은 전체 진행 업무 표시, 나머지는 본인 배정 업무만
-    if current_user.role in ('소장', '편집장'):
+    if current_user.role in ('소장', '편집장', '행정팀장'):
         my_tasks = Task.query.filter(Task.status!='완료').order_by(Task.due_date).limit(8).all()
     else:
         my_tasks = Task.query.filter_by(assignee_id=current_user.id).filter(Task.status!='완료').order_by(Task.due_date).limit(5).all()
@@ -707,7 +707,7 @@ def upload_file():
         context_name = item_obj.name
     noti_msg = f'{current_user.name}님이 "{context_name}"에 파일을 첨부했습니다: {orig_name}'
     noti_link = url_for('tasks')
-    managers = User.query.filter(User.role.in_(['소장', '편집장'])).all()
+    managers = User.query.filter(User.role.in_(['소장', '편집장', '행정팀장'])).all()
     for mgr in managers:
         if mgr.id != current_user.id:  # 본인에겐 알림 안 보냄
             noti = Notification(
@@ -1227,6 +1227,22 @@ def create_idea():
         artist=request.form.get('artist', ''),
     )
     db.session.add(idea)
+    db.session.flush()
+
+    # 편집장/행정팀장/소장에게 새 아이디어 알림
+    noti_msg = f'{current_user.name}님이 새 아이디어를 제안했습니다: "{idea.title}"'
+    noti_link = url_for('ideas')
+    reviewers = User.query.filter(User.role.in_(['소장', '편집장', '행정팀장'])).all()
+    for rev in reviewers:
+        if rev.id != current_user.id:
+            noti = Notification(
+                recipient_id=rev.id,
+                message=noti_msg,
+                link=noti_link,
+                noti_type='아이디어',
+            )
+            db.session.add(noti)
+
     db.session.commit()
     flash(f'아이디어 "{idea.title}" 제안 완료!', 'success')
     return redirect(url_for('ideas'))
@@ -1773,7 +1789,7 @@ def profile():
 
     return render_template('index.html', page='profile')
 
-ADMIN_ROLES = ['소장', '편집장']
+ADMIN_ROLES = ['소장', '편집장', '행정팀장']
 
 def is_admin():
     return current_user.role in ADMIN_ROLES
