@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from models import db, User, Category, Item, Task, Comment, InventoryLog, WeeklyCount, Feedback, Idea, KakaoEvent, CostRecord, Performance, Attachment, ChecklistItem, Notification, RolePermission
+from models import db, User, Category, Item, Task, Comment, InventoryLog, WeeklyCount, Feedback, Idea, KakaoEvent, CostRecord, Performance, Attachment, ChecklistItem, Notification, RolePermission, Role
 
 app = Flask(__name__)
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -1832,7 +1832,15 @@ PERMISSION_DEFS = {
     'manage_kakao': '카카오메이커스 관리',
 }
 
-ALL_ROLES = ['소장', '편집장', '행정팀장', '실무자', '디자이너', '구독매니저1', '구독매니저2']
+DEFAULT_ROLES = [
+    {'name': '소장', 'description': '총괄 디렉터', 'is_admin': True, 'sort_order': 1},
+    {'name': '편집장', 'description': '편집 총괄', 'is_admin': True, 'sort_order': 2},
+    {'name': '행정팀장', 'description': '행정/스케줄 관리', 'is_admin': True, 'sort_order': 3},
+    {'name': '실무자', 'description': '굿즈 기획/제작 실무', 'is_admin': False, 'sort_order': 10},
+    {'name': '디자이너', 'description': '디자인 담당', 'is_admin': False, 'sort_order': 11},
+    {'name': '구독매니저1', 'description': '구독 관리 (정황규)', 'is_admin': False, 'sort_order': 20},
+    {'name': '구독매니저2', 'description': '구독 관리', 'is_admin': False, 'sort_order': 21},
+]
 
 DEFAULT_PERMISSIONS = {
     '소장':       ['view_all_tasks', 'manage_users', 'review_ideas', 'receive_notifications', 'manage_items', 'manage_inventory', 'manage_costs', 'manage_checklist', 'use_ai_check', 'manage_kakao'],
@@ -1843,6 +1851,27 @@ DEFAULT_PERMISSIONS = {
     '구독매니저1': ['manage_inventory', 'manage_costs', 'manage_checklist'],
     '구독매니저2': ['manage_inventory', 'manage_costs', 'manage_checklist'],
 }
+
+def get_all_roles():
+    """DB에서 역할 목록을 정렬하여 반환 (이름 리스트)"""
+    roles = Role.query.order_by(Role.sort_order, Role.name).all()
+    if roles:
+        return [r.name for r in roles]
+    return [r['name'] for r in DEFAULT_ROLES]
+
+def get_all_role_objects():
+    """DB에서 역할 객체 목록 반환"""
+    return Role.query.order_by(Role.sort_order, Role.name).all()
+
+def seed_roles():
+    """기본 역할이 없으면 초기화"""
+    if Role.query.first():
+        return
+    for rd in DEFAULT_ROLES:
+        r = Role(name=rd['name'], description=rd['description'],
+                 is_admin=rd['is_admin'], sort_order=rd['sort_order'])
+        db.session.add(r)
+    db.session.commit()
 
 def seed_permissions():
     """기본 권한이 없으면 초기화"""
@@ -1879,7 +1908,8 @@ def admin_users():
         flash('관리자만 접근할 수 있습니다.', 'error')
         return redirect(url_for('dashboard'))
     users = User.query.order_by(User.role, User.name).all()
-    return render_template('index.html', page='admin_users', all_users=users)
+    all_roles = get_all_roles()
+    return render_template('index.html', page='admin_users', all_users=users, all_roles=all_roles)
 
 @app.route('/admin/users/create', methods=['POST'])
 @login_required
@@ -1962,15 +1992,19 @@ def admin_permissions():
         flash('관리자만 접근할 수 있습니다.', 'error')
         return redirect(url_for('dashboard'))
     # 역할별 권한 매트릭스 구성
+    all_roles = get_all_roles()
+    role_objects = get_all_role_objects()
     perm_matrix = {}
-    for role in ALL_ROLES:
+    for role in all_roles:
         perm_matrix[role] = {}
         for perm_key in PERMISSION_DEFS:
             rp = RolePermission.query.filter_by(role=role, permission=perm_key).first()
             perm_matrix[role][perm_key] = rp.enabled if rp else (perm_key in DEFAULT_PERMISSIONS.get(role, []))
+    all_users = User.query.all()
     return render_template('index.html', page='admin_permissions',
                            perm_matrix=perm_matrix, perm_defs=PERMISSION_DEFS,
-                           all_roles=ALL_ROLES)
+                           all_roles=all_roles, role_objects=role_objects,
+                           all_users=all_users)
 
 @app.route('/admin/permissions/update', methods=['POST'])
 @login_required
@@ -1978,7 +2012,7 @@ def admin_update_permissions():
     if not is_admin():
         flash('관리자만 권한을 변경할 수 있습니다.', 'error')
         return redirect(url_for('dashboard'))
-    for role in ALL_ROLES:
+    for role in get_all_roles():
         for perm_key in PERMISSION_DEFS:
             field_name = f'perm_{role}_{perm_key}'
             enabled = field_name in request.form
@@ -1990,6 +2024,78 @@ def admin_update_permissions():
                 db.session.add(rp)
     db.session.commit()
     flash('권한 설정이 저장되었습니다.', 'success')
+    return redirect(url_for('admin_permissions'))
+
+# ── 역할 관리 ──
+@app.route('/admin/roles/create', methods=['POST'])
+@login_required
+def admin_create_role():
+    if not is_admin():
+        flash('관리자만 역할을 추가할 수 있습니다.', 'error')
+        return redirect(url_for('dashboard'))
+    name = request.form.get('role_name', '').strip()
+    desc = request.form.get('role_desc', '').strip()
+    is_adm = 'role_is_admin' in request.form
+    if not name:
+        flash('역할 이름을 입력해주세요.', 'error')
+        return redirect(url_for('admin_permissions'))
+    if Role.query.filter_by(name=name).first():
+        flash(f'역할 "{name}"이(가) 이미 존재합니다.', 'error')
+        return redirect(url_for('admin_permissions'))
+    max_order = db.session.query(db.func.max(Role.sort_order)).scalar() or 0
+    role = Role(name=name, description=desc, is_admin=is_adm, sort_order=max_order + 10)
+    db.session.add(role)
+    # 새 역할에 대한 기본 권한 생성 (모두 off)
+    for perm_key in PERMISSION_DEFS:
+        rp = RolePermission(role=name, permission=perm_key, enabled=False)
+        db.session.add(rp)
+    db.session.commit()
+    flash(f'역할 "{name}"이(가) 추가되었습니다. 권한을 설정해주세요.', 'success')
+    return redirect(url_for('admin_permissions'))
+
+@app.route('/admin/roles/<int:role_id>/edit', methods=['POST'])
+@login_required
+def admin_edit_role(role_id):
+    if not is_admin():
+        flash('관리자만 역할을 수정할 수 있습니다.', 'error')
+        return redirect(url_for('dashboard'))
+    role = Role.query.get_or_404(role_id)
+    old_name = role.name
+    new_name = request.form.get('role_name', '').strip()
+    new_desc = request.form.get('role_desc', '').strip()
+    new_is_admin = 'role_is_admin' in request.form
+    if new_name and new_name != old_name:
+        if Role.query.filter_by(name=new_name).first():
+            flash(f'역할 "{new_name}"이(가) 이미 존재합니다.', 'error')
+            return redirect(url_for('admin_permissions'))
+        # 연결된 사용자, 권한 레코드도 업데이트
+        User.query.filter_by(role=old_name).update({'role': new_name})
+        RolePermission.query.filter_by(role=old_name).update({'role': new_name})
+        role.name = new_name
+    if new_desc is not None:
+        role.description = new_desc
+    role.is_admin = new_is_admin
+    db.session.commit()
+    flash(f'역할이 수정되었습니다.', 'success')
+    return redirect(url_for('admin_permissions'))
+
+@app.route('/admin/roles/<int:role_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_role(role_id):
+    if not is_admin():
+        flash('관리자만 역할을 삭제할 수 있습니다.', 'error')
+        return redirect(url_for('dashboard'))
+    role = Role.query.get_or_404(role_id)
+    # 해당 역할을 사용하는 사용자가 있으면 삭제 불가
+    users_with_role = User.query.filter_by(role=role.name).count()
+    if users_with_role > 0:
+        flash(f'역할 "{role.name}"을(를) 사용하는 사용자가 {users_with_role}명 있어 삭제할 수 없습니다. 먼저 사용자의 역할을 변경해주세요.', 'error')
+        return redirect(url_for('admin_permissions'))
+    # 권한 레코드 삭제
+    RolePermission.query.filter_by(role=role.name).delete()
+    db.session.delete(role)
+    db.session.commit()
+    flash(f'역할 "{role.name}"이(가) 삭제되었습니다.', 'success')
     return redirect(url_for('admin_permissions'))
 
 @app.route('/feedback')
@@ -2217,8 +2323,8 @@ def inject_notification_count():
     """모든 페이지에서 알림 개수를 사용할 수 있도록"""
     if hasattr(current_user, 'id') and current_user.is_authenticated:
         unread = Notification.query.filter_by(recipient_id=current_user.id, is_read=False).count()
-        return {'noti_count': unread}
-    return {'noti_count': 0}
+        return {'noti_count': unread, 'user_is_admin': is_admin()}
+    return {'noti_count': 0, 'user_is_admin': False}
 
 # ═══════════════════════════════════════════
 # INIT — 스키마 자동 검증 & 재생성
@@ -2226,6 +2332,7 @@ def inject_notification_count():
 with app.app_context():
     db.create_all()
     seed_database()
+    seed_roles()
     seed_permissions()
 
 if __name__ == '__main__':

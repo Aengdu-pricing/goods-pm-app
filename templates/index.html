@@ -33,13 +33,13 @@
     <a href="{{ url_for('feedback') }}" class="{% if page=='feedback' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><path d="M3 4h14a1 1 0 011 1v8a1 1 0 01-1 1H7l-4 3v-3a1 1 0 01-1-1V5a1 1 0 011-1z"/><circle cx="7" cy="9" r=".8" fill="currentColor" stroke="none"/><circle cx="10" cy="9" r=".8" fill="currentColor" stroke="none"/><circle cx="13" cy="9" r=".8" fill="currentColor" stroke="none"/></svg></span>고객 피드백</a>
     <a href="{{ url_for('ai_check') }}" class="{% if page=='ai_check' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><rect x="4" y="2" width="12" height="16" rx="2"/><circle cx="10" cy="8" r="3"/><path d="M7 8h-3M16 8h-3"/><path d="M10 5V2M10 14v-3"/><path d="M8 14h4" stroke-width="1.4"/><circle cx="10" cy="8" r="1" fill="currentColor" stroke="none"/></svg></span>제작 가이드</a>
     <a href="{{ url_for('categories') }}" class="{% if page=='categories' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><path d="M2 5a1 1 0 011-1h5l2 2h7a1 1 0 011 1v9a1 1 0 01-1 1H3a1 1 0 01-1-1z"/><path d="M6 10h8" opacity=".5"/><path d="M6 13h5" opacity=".5"/></svg></span>카테고리</a>
-    {% if current_user.role in ['소장','편집장','행정팀장'] %}
+    {% if user_is_admin %}
     <a href="{{ url_for('admin_users') }}" class="{% if page=='admin_users' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><circle cx="8" cy="6" r="3.5"/><path d="M2 17c0-3.5 2.5-6 6-6s6 2.5 6 6"/><circle cx="15" cy="7" r="2.5"/><path d="M15 11c2 0 4 1.5 4 4"/></svg></span>사용자 관리</a>
     <a href="{{ url_for('admin_permissions') }}" class="{% if page=='admin_permissions' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><path d="M10 2L3 6v5c0 4.4 3 8.5 7 9.5 4-1 7-5.1 7-9.5V6z"/><path d="M7 10l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></span>권한 설정</a>
     {% endif %}
   </nav>
   <a href="https://grim-timi-positivethinking-72254524.koyeb.app/" target="_blank" class="ext-link">
-    <svg viewBox="0 0 16 16"><circle cx="6" cy="10" r="4" fill="#3CC47E" stroke="none" opacity=".7"/><circle cx="11" cy="9" r="3" fill="#2EAD6B" stroke="none" opacity=".6"/><path d="M6 6C7 4 8 2.5 9.5 2" stroke="#1E8A53" stroke-width="1.2" stroke-linecap="round" fill="none"/><path d="M11 6C10.5 4.5 10 3 9.5 2" stroke="#1E8A53" stroke-width="1.2" stroke-linecap="round" fill="none"/></svg>
+    <img src="{{ url_for('static', filename='img/logo_aengdu_sidebar.png') }}" alt="앵두" style="width:18px;height:18px;flex-shrink:0">
     앵두 가격 추천 로봇
   </a>
   <div class="user-area">
@@ -161,7 +161,7 @@
     <div class="card">
       <h3 style="display:flex;align-items:center;gap:6px">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brown)" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        {% if current_user.role in ('소장', '편집장', '행정팀장') %}전체 진행 업무{% else %}나의 업무{% endif %}
+        {% if user_is_admin %}전체 진행 업무{% else %}나의 업무{% endif %}
       </h3>
       {% if my_tasks %}
       {% for t in my_tasks %}
@@ -1576,13 +1576,7 @@
         <div class="form-group"><label>이름 <span class="req">*</span></label><input type="text" name="name" required placeholder="예: 홍길동" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit"></div>
         <div class="form-group"><label>역할 <span class="req">*</span></label>
           <select name="role" required style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit">
-            <option value="실무자">실무자</option>
-            <option value="디자이너">디자이너</option>
-            <option value="구독매니저1">구독매니저1</option>
-            <option value="구독매니저2">구독매니저2</option>
-            <option value="행정팀장">행정팀장</option>
-            <option value="편집장">편집장</option>
-            <option value="소장">소장</option>
+            {% for r in all_roles %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
           </select>
         </div>
       </div>
@@ -1644,13 +1638,7 @@
         <div class="form-row">
           <div class="form-group"><label>역할</label>
             <select name="role" id="ueRole" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit">
-              <option value="소장">소장</option>
-              <option value="편집장">편집장</option>
-              <option value="실무자">실무자</option>
-              <option value="디자이너">디자이너</option>
-              <option value="행정팀장">행정팀장</option>
-              <option value="구독매니저1">구독매니저1</option>
-              <option value="구독매니저2">구독매니저2</option>
+              {% for r in all_roles %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
             </select>
           </div>
           <div class="form-group"><label>이메일</label><input type="email" name="email" id="ueEmail" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit"></div>
@@ -1702,6 +1690,89 @@
         <button type="submit" class="btn-primary" style="padding:10px 24px">💾 저장</button>
       </div>
     </form>
+  </div>
+
+  <!-- 역할 관리 -->
+  <div class="card">
+    <h3>👥 역할 관리</h3>
+    <p style="font-size:12px;color:#666;margin-bottom:16px">새 역할을 추가하거나 기존 역할의 이름/설명을 수정할 수 있습니다.</p>
+
+    <!-- 새 역할 추가 -->
+    <form method="POST" action="{{ url_for('admin_create_role') }}" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px;padding:12px;background:#f8f9fa;border-radius:10px">
+      <div class="form-group" style="flex:1;min-width:120px">
+        <label style="font-size:12px">역할 이름 <span class="req">*</span></label>
+        <input type="text" name="role_name" required placeholder="예: 마케터" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit">
+      </div>
+      <div class="form-group" style="flex:2;min-width:160px">
+        <label style="font-size:12px">설명</label>
+        <input type="text" name="role_desc" placeholder="역할 설명" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit">
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:4px;padding-bottom:14px">
+        <input type="checkbox" name="role_is_admin" id="newRoleAdmin" style="width:16px;height:16px">
+        <label for="newRoleAdmin" style="font-size:12px;margin:0;cursor:pointer">관리자</label>
+      </div>
+      <div class="form-group" style="padding-bottom:14px">
+        <button type="submit" class="btn-primary" style="white-space:nowrap">+ 역할 추가</button>
+      </div>
+    </form>
+
+    <!-- 기존 역할 목록 -->
+    <table class="data-table" style="font-size:13px">
+      <thead><tr><th>역할</th><th>설명</th><th>관리자</th><th>사용자 수</th><th style="width:140px">관리</th></tr></thead>
+      <tbody>
+        {% for ro in role_objects %}
+        {% set user_count = all_users|default([])|selectattr('role','equalto',ro.name)|list|length if all_users is defined else 0 %}
+        <tr>
+          <td><strong>{{ ro.name }}</strong></td>
+          <td style="color:#666">{{ ro.description or '—' }}</td>
+          <td style="text-align:center">{% if ro.is_admin %}<span style="color:var(--green);font-weight:600">✓</span>{% else %}<span style="color:#ccc">—</span>{% endif %}</td>
+          <td style="text-align:center">
+            {% set rc = [] %}
+            {% for u in all_users|default([]) %}{% if u.role == ro.name %}{% if rc.append(1) %}{% endif %}{% endif %}{% endfor %}
+            {{ rc|length }}명
+          </td>
+          <td>
+            <div style="display:flex;gap:4px">
+              <button type="button" onclick="openRoleEdit({{ ro.id }}, '{{ ro.name }}', '{{ ro.description or '' }}', {{ 'true' if ro.is_admin else 'false' }})" class="btn-edit">수정</button>
+              <form method="POST" action="{{ url_for('admin_delete_role', role_id=ro.id) }}" style="display:inline" onsubmit="return confirm('역할 「{{ ro.name }}」을(를) 삭제하시겠습니까?')">
+                <button type="submit" class="btn-del">삭제</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Role Edit Modal -->
+  <div class="modal-overlay" id="roleEditModal">
+    <div class="modal" style="max-width:420px">
+      <div class="modal-header">
+        <h3>✏️ 역할 수정</h3>
+        <button class="modal-close" onclick="document.getElementById('roleEditModal').classList.remove('show')">×</button>
+      </div>
+      <form method="POST" id="roleEditForm" action="">
+      <div class="modal-body">
+        <div class="form-group">
+          <label>역할 이름</label>
+          <input type="text" name="role_name" id="reName" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit">
+        </div>
+        <div class="form-group">
+          <label>설명</label>
+          <input type="text" name="role_desc" id="reDesc" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit">
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:6px">
+          <input type="checkbox" name="role_is_admin" id="reAdmin" style="width:16px;height:16px">
+          <label for="reAdmin" style="margin:0;cursor:pointer">관리자 권한</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-outline" onclick="document.getElementById('roleEditModal').classList.remove('show')">취소</button>
+        <button type="submit" class="btn-primary">저장</button>
+      </div>
+      </form>
+    </div>
   </div>
 
   <!-- ═══ PROFILE ═══ -->
@@ -1925,6 +1996,14 @@ function openUserEdit(userId) {
     document.getElementById('userEditModal').classList.add('show');
     break;
   }
+}
+
+function openRoleEdit(roleId, name, desc, isAdmin) {
+  document.getElementById('roleEditForm').action = '/admin/roles/' + roleId + '/edit';
+  document.getElementById('reName').value = name;
+  document.getElementById('reDesc').value = desc;
+  document.getElementById('reAdmin').checked = isAdmin;
+  document.getElementById('roleEditModal').classList.add('show');
 }
 
 // AI Check form

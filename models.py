@@ -217,6 +217,16 @@ class CostRecord(db.Model):
     adder = db.relationship('User')
 
 # ─── Performance ───
+# ─── Roles (역할 관리) ───
+class Role(db.Model):
+    __tablename__ = 'roles'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    description = db.Column(db.String(200))
+    is_admin = db.Column(db.Boolean, default=False)  # 관리자 권한 여부
+    sort_order = db.Column(db.Integer, default=100)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 # ─── Role Permissions (역할별 권한) ───
 class RolePermission(db.Model):
     __tablename__ = 'role_permissions'
