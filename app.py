@@ -986,7 +986,42 @@ def inventory():
     items_a = Item.query.filter(Item.line.contains('A'), Item.current_stock > 0).all()
     all_items = Item.query.order_by(Item.line, Item.name).all()
     weekly = WeeklyCount.query.order_by(WeeklyCount.counted_at.desc()).limit(20).all()
-    return render_template('index.html', page='inventory', items_a=items_a, all_items=all_items, weekly_counts=weekly)
+
+    # ── 소진 현황 (구 마케팅 부스팅) ──
+    selling_items = Item.query.filter(Item.status.in_(['판매중', '소진중'])).order_by(Item.line, Item.name).all()
+    items_data = []
+    for it in selling_items:
+        wks = WeeklyCount.query.filter_by(item_id=it.id).order_by(WeeklyCount.counted_at.desc()).limit(4).all()
+        weekly_avg = 0
+        if len(wks) >= 2:
+            total_diff = sum(abs(w.diff) for w in wks if w.diff and w.diff < 0)
+            weekly_avg = total_diff // len(wks) if total_diff else 0
+        remaining_weeks = None
+        if weekly_avg > 0 and it.current_stock:
+            remaining_weeks = it.current_stock // weekly_avg
+        recommendations = []
+        pct = (it.current_stock / it.target_qty * 100) if it.target_qty and it.current_stock else 0
+        if pct > 75:
+            recommendations.append('📢 초기 홍보 집중 — SNS 마케팅, 스토어 배너 노출')
+        elif pct > 50:
+            recommendations.append('📊 중간 점검 — 판매 추이 모니터링, 리뷰 수집')
+        elif pct > 25:
+            recommendations.append('🔥 후반 부스팅 — 할인/번들, 재구매 유도')
+        else:
+            recommendations.append('⚠️ 재발주 검토 또는 마케팅 축소')
+        if it.sale_url_smartstore:
+            recommendations.append('🛒 스마트스토어 → 키워드 광고, 쇼핑라이브 고려')
+        if it.sale_url_aengdu:
+            recommendations.append('🍒 앵두 → SNS 연계, 아티스트 팬 타겟 마케팅')
+        items_data.append({
+            'item': it, 'weekly_avg': weekly_avg,
+            'remaining_weeks': remaining_weeks,
+            'pct': round(pct, 1), 'recommendations': recommendations,
+        })
+
+    return render_template('index.html', page='inventory', items_a=items_a,
+                           all_items=all_items, weekly_counts=weekly,
+                           items_data=items_data)
 
 @app.route('/inventory/weekly', methods=['POST'])
 @login_required
@@ -1756,53 +1791,6 @@ def delete_cost(cost_id):
     db.session.commit()
     return jsonify({'ok': True})
 
-@app.route('/marketing')
-@login_required
-def marketing():
-    """마케팅 대시보드 — 판매 현황, 재고 소진 속도, 마케팅 타이밍 추천"""
-    all_items = Item.query.filter(Item.status.in_(['판매중', '소진중'])).order_by(Item.line, Item.name).all()
-    # 판매 품목별 데이터 구성
-    items_data = []
-    for it in all_items:
-        # 재고 소진 속도 추정 (주간 카운트 기반)
-        weekly = WeeklyCount.query.filter_by(item_id=it.id).order_by(WeeklyCount.counted_at.desc()).limit(4).all()
-        weekly_avg = 0
-        if len(weekly) >= 2:
-            total_diff = sum(abs(w.diff) for w in weekly if w.diff and w.diff < 0)
-            weekly_avg = total_diff // len(weekly) if total_diff else 0
-
-        # 재고 잔여 예상 기간
-        remaining_weeks = None
-        if weekly_avg > 0 and it.current_stock:
-            remaining_weeks = it.current_stock // weekly_avg
-
-        # 마케팅 추천
-        recommendations = []
-        pct = (it.current_stock / it.target_qty * 100) if it.target_qty and it.current_stock else 0
-        if pct > 75:
-            recommendations.append('📢 초기 홍보 집중 — SNS 마케팅, 스토어 배너 노출')
-        elif pct > 50:
-            recommendations.append('📊 중간 점검 — 판매 추이 모니터링, 리뷰 수집')
-        elif pct > 25:
-            recommendations.append('🔥 후반 부스팅 — 할인/번들, 재구매 유도')
-        else:
-            recommendations.append('⚠️ 재발주 검토 또는 마케팅 축소')
-
-        if it.sale_url_smartstore:
-            recommendations.append('🛒 스마트스토어 → 키워드 광고, 쇼핑라이브 고려')
-        if it.sale_url_aengdu:
-            recommendations.append('🍒 앵두 → SNS 연계, 아티스트 팬 타겟 마케팅')
-
-        items_data.append({
-            'item': it,
-            'weekly_avg': weekly_avg,
-            'remaining_weeks': remaining_weeks,
-            'pct': round(pct, 1),
-            'recommendations': recommendations,
-        })
-
-    return render_template('index.html', page='marketing', items_data=items_data)
-
 @app.route('/profile', methods=['GET','POST'])
 @login_required
 def profile():
@@ -1842,16 +1830,15 @@ PERMISSION_DEFS = {
     'manage_checklist': '퀄리티 체크리스트',
     'use_ai_check': '제작 가이드 사용',
     'manage_kakao': '카카오메이커스 관리',
-    'manage_marketing': '마케팅 부스팅',
 }
 
 ALL_ROLES = ['소장', '편집장', '행정팀장', '실무자', '디자이너', '구독매니저1', '구독매니저2']
 
 DEFAULT_PERMISSIONS = {
-    '소장':       ['view_all_tasks', 'manage_users', 'review_ideas', 'receive_notifications', 'manage_items', 'manage_inventory', 'manage_costs', 'manage_checklist', 'use_ai_check', 'manage_kakao', 'manage_marketing'],
-    '편집장':     ['view_all_tasks', 'manage_users', 'review_ideas', 'receive_notifications', 'manage_items', 'manage_inventory', 'manage_costs', 'manage_checklist', 'use_ai_check', 'manage_kakao', 'manage_marketing'],
-    '행정팀장':   ['view_all_tasks', 'manage_users', 'review_ideas', 'receive_notifications', 'manage_items', 'manage_inventory', 'manage_costs', 'manage_checklist', 'use_ai_check', 'manage_kakao', 'manage_marketing'],
-    '실무자':     ['manage_items', 'manage_inventory', 'manage_costs', 'manage_checklist', 'use_ai_check', 'manage_kakao', 'manage_marketing'],
+    '소장':       ['view_all_tasks', 'manage_users', 'review_ideas', 'receive_notifications', 'manage_items', 'manage_inventory', 'manage_costs', 'manage_checklist', 'use_ai_check', 'manage_kakao'],
+    '편집장':     ['view_all_tasks', 'manage_users', 'review_ideas', 'receive_notifications', 'manage_items', 'manage_inventory', 'manage_costs', 'manage_checklist', 'use_ai_check', 'manage_kakao'],
+    '행정팀장':   ['view_all_tasks', 'manage_users', 'review_ideas', 'receive_notifications', 'manage_items', 'manage_inventory', 'manage_costs', 'manage_checklist', 'use_ai_check', 'manage_kakao'],
+    '실무자':     ['manage_items', 'manage_inventory', 'manage_costs', 'manage_checklist', 'use_ai_check', 'manage_kakao'],
     '디자이너':   ['manage_items', 'manage_checklist', 'use_ai_check'],
     '구독매니저1': ['manage_inventory', 'manage_costs', 'manage_checklist'],
     '구독매니저2': ['manage_inventory', 'manage_costs', 'manage_checklist'],
