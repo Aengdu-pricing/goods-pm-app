@@ -390,6 +390,14 @@ def create_item():
     # 퀄리티 체크리스트 자동 생성 (카테고리 기반)
     checklist_count = _create_checklist_for_item(item)
 
+    # 상품 등록 알림: 관련자 + 상위 3역할
+    _notify_related_and_admins(
+        item,
+        f'{current_user.name}님이 새 상품을 등록했습니다: "{name}" ({line}라인)',
+        url_for('items'),
+        '상품등록',
+    )
+
     db.session.commit()
     if is_existing:
         flash(f'"{name}" 기존 상품이 등록되었습니다. (상태: {item_status}, 재고: {current_stock:,}개) 체크리스트 {checklist_count}건 생성!', 'success')
@@ -589,17 +597,16 @@ def advance_task(task_id):
             assigned_user = User.query.get(assignee_id) if assignee_id else None
             flash(f'"{next_stage}" 단계 업무가 자동 생성되었습니다.', 'info')
 
-        # 담당자에게 알림 발송
-        if assigned_user and assigned_user.id != current_user.id:
-            item = Item.query.get(task.item_id) if task.item_id else None
-            item_name = item.name if item else task.title
-            noti = Notification(
-                recipient_id=assigned_user.id,
-                message=f'{current_user.name}님이 "{item_name}" {next_stage} 단계를 배정했습니다.',
-                link=url_for('tasks'),
-                noti_type='업무배정',
-            )
-            db.session.add(noti)
+        # 관련자들에게 단계 이동 알림
+        item = Item.query.get(task.item_id) if task.item_id else None
+        item_name = item.name if item else task.title
+        who = f' → {assigned_user.name}님 배정' if assigned_user else ''
+        _notify_task_related(
+            task,
+            f'{current_user.name}님이 "{item_name}" {next_stage} 단계로 이동했습니다{who}',
+            url_for('tasks'),
+            '업무배정',
+        )
 
     db.session.commit()
     if not task.item_id:
@@ -636,6 +643,14 @@ def revert_task(task_id):
         if future_task and future_task.status != '대기':
             future_task.status = '대기'
             future_task.completed_at = None
+    # 관련자들에게 되돌리기 알림
+    item_name = task.item.name if task.item else task.title
+    _notify_task_related(
+        task,
+        f'⏪ "{item_name}" {task.stage} → {prev_stage} 단계로 되돌렸습니다. ({current_user.name})',
+        url_for('tasks'),
+        '되돌리기',
+    )
     db.session.commit()
     flash(f'"{task.stage}" → "{prev_stage}" 단계로 되돌렸습니다.', 'info')
     return jsonify({'ok': True})
@@ -652,10 +667,15 @@ def complete_delivery(task_id):
     # 연결된 상품 상태를 입고완료/판매중으로 변경
     if task.item:
         task.item.status = '판매중'
-    db.session.commit()
     item_name = task.item.name if task.item else task.title
+    # 전체에게 입고 완료 알림
+    _notify_all(
+        f'🎉 "{item_name}" 입고 완료! ({current_user.name})',
+        url_for('inventory'),
+        '입고완료',
+    )
+    db.session.commit()
     flash(f'🎉 "{item_name}" 입고 완료! 재고 수량을 확인해주세요.', 'success')
-    # 재고 관리 페이지로 리다이렉트 (item_id 파라미터 포함)
     return jsonify({'ok': True, 'redirect': url_for('inventory'), 'item_name': item_name})
 
 @app.route('/tasks/<int:task_id>/production', methods=['POST'])
@@ -685,6 +705,15 @@ def sample_approve(task_id):
     next_task = Task.query.filter_by(item_id=task.item_id, stage='제작').first()
     if next_task:
         next_task.status = '진행중'
+        next_task.completed_at = None
+    # 관련자들에게 컨펌 승인 알림
+    item_name = task.item.name if task.item else task.title
+    _notify_task_related(
+        task,
+        f'✅ "{item_name}" 샘플 승인 완료! 제작 발주 단계로 이동합니다. ({current_user.name})',
+        url_for('tasks'),
+        '컨펌승인',
+    )
     db.session.commit()
     flash(f'샘플 승인 완료! 제작 발주 단계로 넘어갑니다.', 'success')
     return jsonify({'ok': True})
@@ -703,6 +732,14 @@ def sample_revise(task_id):
     if design_task:
         design_task.status = '진행중'
         design_task.completed_at = None
+    # 관련자들에게 수정요청 알림
+    item_name = task.item.name if task.item else task.title
+    _notify_task_related(
+        task,
+        f'🔄 "{item_name}" 수정 요청 (#{task.revision_count}차) — 디자인 단계로 되돌아갑니다. ({current_user.name})',
+        url_for('tasks'),
+        '수정요청',
+    )
     db.session.commit()
     flash(f'수정 요청! (#{task.revision_count}차) 디자인 단계로 되돌아갑니다.', 'warning')
     return jsonify({'ok': True, 'revision_count': task.revision_count})
@@ -786,7 +823,7 @@ def upload_file():
     db.session.add(att)
     db.session.flush()  # att.id 확보
 
-    # 소장/편집장에게 파일 첨부 알림 생성
+    # 관련자에게 파일 첨부 알림
     task_obj = Task.query.get(int(task_id)) if task_id else None
     item_obj = Item.query.get(int(item_id)) if item_id else None
     context_name = ''
@@ -796,18 +833,12 @@ def upload_file():
         context_name = item_obj.name
     noti_msg = f'{current_user.name}님이 "{context_name}"에 파일을 첨부했습니다: {orig_name}'
     noti_link = url_for('tasks')
-    noti_roles = get_roles_with_perm('receive_notifications')
-    managers = User.query.filter(User.role.in_(noti_roles)).all()
-    for mgr in managers:
-        if mgr.id != current_user.id:  # 본인에겐 알림 안 보냄
-            noti = Notification(
-                recipient_id=mgr.id,
-                message=noti_msg,
-                link=noti_link,
-                noti_type='파일첨부',
-                attachment_id=att.id,
-            )
-            db.session.add(noti)
+    if task_obj:
+        _notify_task_related(task_obj, noti_msg, noti_link, '파일첨부', attachment_id=att.id)
+    elif item_obj:
+        _notify_related_and_admins(item_obj, noti_msg, noti_link, '파일첨부', attachment_id=att.id)
+    else:
+        _notify(list(_get_admin_users()), noti_msg, noti_link, '파일첨부', attachment_id=att.id)
 
     db.session.commit()
     flash(f'"{orig_name}" 업로드 완료', 'success')
@@ -1391,6 +1422,13 @@ def create_kakao_event():
         )
         db.session.add(task)
 
+    # 전체에게 카카오 이벤트 생성 알림
+    period_str = f'{ev.period_start} ~ {ev.period_end}' if ev.period_start else ''
+    _notify_all(
+        f'🟡 카카오메이커스 이벤트 "{ev.name}" 등록! ({period_str}) — {current_user.name}',
+        url_for('kakao'),
+        '카카오이벤트',
+    )
     db.session.commit()
     flash(f'카카오메이커스 이벤트 "{ev.name}" 등록! 업무 {max(len(bundle_ids),1)}건 자동 생성', 'success')
     return redirect(url_for('kakao'))
@@ -1446,20 +1484,10 @@ def create_idea():
     db.session.add(idea)
     db.session.flush()
 
-    # 편집장/행정팀장/소장에게 새 아이디어 알림
+    # 전체에게 새 아이디어 알림
     noti_msg = f'{current_user.name}님이 새 아이디어를 제안했습니다: "{idea.title}"'
     noti_link = url_for('ideas')
-    noti_roles = get_roles_with_perm('receive_notifications')
-    reviewers = User.query.filter(User.role.in_(noti_roles)).all()
-    for rev in reviewers:
-        if rev.id != current_user.id:
-            noti = Notification(
-                recipient_id=rev.id,
-                message=noti_msg,
-                link=noti_link,
-                noti_type='아이디어',
-            )
-            db.session.add(noti)
+    _notify_all(noti_msg, noti_link, '아이디어')
 
     db.session.commit()
     flash(f'아이디어 "{idea.title}" 제안 완료!', 'success')
@@ -1993,6 +2021,76 @@ DEFAULT_PERMISSIONS = {
     '구독매니저1': ['manage_inventory', 'manage_costs', 'manage_checklist'],
     '구독매니저2': ['manage_inventory', 'manage_costs', 'manage_checklist'],
 }
+
+# ──────────────────────────────────────────────
+# 알림 헬퍼 함수 (관련자 기반)
+# ──────────────────────────────────────────────
+def _get_admin_users():
+    """상위 3역할(소장, 편집장, 행정팀장) 사용자 목록"""
+    admin_roles = [r.name for r in Role.query.filter_by(is_admin=True).all()]
+    if not admin_roles:
+        admin_roles = ['소장', '편집장', '행정팀장']
+    return User.query.filter(User.role.in_(admin_roles)).all()
+
+def _get_item_related_users(item):
+    """상품 관련자: owner + 해당 상품의 태스크 담당자들"""
+    user_ids = set()
+    if item.owner_id:
+        user_ids.add(item.owner_id)
+    tasks = Task.query.filter_by(item_id=item.id).all()
+    for t in tasks:
+        if t.assignee_id:
+            user_ids.add(t.assignee_id)
+    return User.query.filter(User.id.in_(user_ids)).all() if user_ids else []
+
+def _get_task_related_users(task):
+    """업무 관련자: 담당자 + 같은 상품의 다른 태스크 담당자들"""
+    user_ids = set()
+    if task.assignee_id:
+        user_ids.add(task.assignee_id)
+    if task.item_id:
+        sibling_tasks = Task.query.filter_by(item_id=task.item_id).all()
+        for t in sibling_tasks:
+            if t.assignee_id:
+                user_ids.add(t.assignee_id)
+        item = Item.query.get(task.item_id)
+        if item and item.owner_id:
+            user_ids.add(item.owner_id)
+    return User.query.filter(User.id.in_(user_ids)).all() if user_ids else []
+
+def _notify(recipients, message, link, noti_type, exclude_user_id=None, attachment_id=None):
+    """여러 수신자에게 알림 발송 (본인 제외)"""
+    exclude_id = exclude_user_id or (current_user.id if current_user and current_user.is_authenticated else None)
+    for user in recipients:
+        if user.id == exclude_id:
+            continue
+        noti = Notification(
+            recipient_id=user.id,
+            message=message,
+            link=link,
+            noti_type=noti_type,
+            attachment_id=attachment_id,
+        )
+        db.session.add(noti)
+
+def _notify_all(message, link, noti_type, exclude_user_id=None):
+    """전체 사용자에게 알림 발송 (본인 제외)"""
+    all_users = User.query.all()
+    _notify(all_users, message, link, noti_type, exclude_user_id)
+
+def _notify_related_and_admins(item, message, link, noti_type, exclude_user_id=None):
+    """관련자 + 상위 3역할에게 알림 (중복 제거)"""
+    user_set = {}
+    for u in _get_item_related_users(item):
+        user_set[u.id] = u
+    for u in _get_admin_users():
+        user_set[u.id] = u
+    _notify(list(user_set.values()), message, link, noti_type, exclude_user_id)
+
+def _notify_task_related(task, message, link, noti_type, exclude_user_id=None):
+    """업무 관련자들에게 알림"""
+    related = _get_task_related_users(task)
+    _notify(related, message, link, noti_type, exclude_user_id)
 
 def get_all_roles():
     """DB에서 역할 목록을 정렬하여 반환 (이름 리스트)"""
