@@ -1141,53 +1141,59 @@ def create_reorder(item_id):
 @login_required
 def upload_file():
     """파일 업로드 (태스크 또는 품목에 첨부)"""
-    from flask import send_from_directory
-    file = request.files.get('file')
-    if not file or not file.filename:
-        flash('파일을 선택해주세요.', 'error')
-        return redirect(request.referrer or url_for('tasks'))
+    try:
+        file = request.files.get('file')
+        if not file or not file.filename:
+            flash('파일을 선택해주세요.', 'error')
+            return redirect(request.referrer or url_for('tasks'))
 
-    task_id = request.form.get('task_id') or None
-    item_id = request.form.get('item_id') or None
-    file_type = request.form.get('file_type', '기타')
+        task_id = request.form.get('task_id') or None
+        item_id = request.form.get('item_id') or None
+        file_type = request.form.get('file_type', '기타')
 
-    # 안전한 파일명 생성
-    orig_name = file.filename
-    ext = orig_name.rsplit('.', 1)[-1] if '.' in orig_name else ''
-    safe_name = f"{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{secure_filename(orig_name)}"
-    filepath = os.path.join(UPLOAD_DIR, safe_name)
-    file.save(filepath)
-    file_size = os.path.getsize(filepath)
+        # 안전한 파일명 생성
+        orig_name = file.filename
+        ext = orig_name.rsplit('.', 1)[-1] if '.' in orig_name else ''
+        safe_name = f"{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{secure_filename(orig_name)}"
+        filepath = os.path.join(UPLOAD_DIR, safe_name)
+        file.save(filepath)
+        file_size = os.path.getsize(filepath)
 
-    att = Attachment(
-        task_id=int(task_id) if task_id else None,
-        item_id=int(item_id) if item_id else None,
-        filename=safe_name, original_name=orig_name,
-        file_type=file_type, file_size=file_size,
-        uploaded_by=current_user.id
-    )
-    db.session.add(att)
-    db.session.flush()  # att.id 확보
+        att = Attachment(
+            task_id=int(task_id) if task_id else None,
+            item_id=int(item_id) if item_id else None,
+            filename=safe_name, original_name=orig_name,
+            file_type=file_type, file_size=file_size,
+            uploaded_by=current_user.id
+        )
+        db.session.add(att)
+        db.session.flush()  # att.id 확보
 
-    # 관련자에게 파일 첨부 알림
-    task_obj = Task.query.get(int(task_id)) if task_id else None
-    item_obj = Item.query.get(int(item_id)) if item_id else None
-    context_name = ''
-    if task_obj:
-        context_name = task_obj.title
-    elif item_obj:
-        context_name = item_obj.name
-    noti_msg = f'{current_user.name}님이 "{context_name}"에 파일을 첨부했습니다: {orig_name}'
-    noti_link = url_for('tasks')
-    if task_obj:
-        _notify_task_related(task_obj, noti_msg, noti_link, '파일첨부', attachment_id=att.id)
-    elif item_obj:
-        _notify_related_and_admins(item_obj, noti_msg, noti_link, '파일첨부', attachment_id=att.id)
-    else:
-        _notify(list(_get_admin_users()), noti_msg, noti_link, '파일첨부', attachment_id=att.id)
+        # 관련자에게 파일 첨부 알림
+        task_obj = Task.query.get(int(task_id)) if task_id else None
+        item_obj = Item.query.get(int(item_id)) if item_id else None
+        context_name = ''
+        if task_obj:
+            context_name = task_obj.title
+        elif item_obj:
+            context_name = item_obj.name
+        noti_msg = f'{current_user.name}님이 "{context_name}"에 파일을 첨부했습니다: {orig_name}'
+        noti_link = url_for('tasks')
+        if task_obj:
+            _notify_task_related(task_obj, noti_msg, noti_link, '파일첨부', attachment_id=att.id)
+        elif item_obj:
+            _notify_related_and_admins(item_obj, noti_msg, noti_link, '파일첨부', attachment_id=att.id)
+        else:
+            _notify(list(_get_admin_users()), noti_msg, noti_link, '파일첨부', attachment_id=att.id)
 
-    db.session.commit()
-    flash(f'"{orig_name}" 업로드 완료', 'success')
+        db.session.commit()
+        flash(f'"{orig_name}" 업로드 완료', 'success')
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        err_detail = traceback.format_exc()
+        app.logger.error(f'파일 업로드 에러: {err_detail}')
+        flash(f'파일 업로드 실패: {str(e)}', 'error')
     return redirect(request.referrer or url_for('tasks'))
 
 @app.route('/uploads/<filename>')
