@@ -557,9 +557,9 @@ def advance_task(task_id):
         next_task = Task.query.filter_by(item_id=task.item_id, stage=next_stage).first()
 
         if next_task:
-            # 기존 태스크가 있으면 활성화
-            if next_task.status == '대기':
-                next_task.status = '진행중'
+            # 기존 태스크가 있으면 활성화 (완료 상태여도 재활성화)
+            next_task.status = '진행중'
+            next_task.completed_at = None
             if next_assignee_id:
                 next_task.assignee_id = next_assignee_id
             assigned_user = User.query.get(next_task.assignee_id) if next_task.assignee_id else None
@@ -629,6 +629,13 @@ def revert_task(task_id):
     if prev_task:
         prev_task.status = '진행중'
         prev_task.completed_at = None
+    # 현재 단계 이후의 모든 태스크도 대기로 리셋
+    for future_idx in range(current_idx + 1, len(STAGES)):
+        future_stage = STAGES[future_idx]
+        future_task = Task.query.filter_by(item_id=task.item_id, stage=future_stage).first()
+        if future_task and future_task.status != '대기':
+            future_task.status = '대기'
+            future_task.completed_at = None
     db.session.commit()
     flash(f'"{task.stage}" → "{prev_stage}" 단계로 되돌렸습니다.', 'info')
     return jsonify({'ok': True})
