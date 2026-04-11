@@ -242,8 +242,29 @@ def dashboard():
     if has_perm('view_all_tasks'):
         my_tasks = Task.query.filter(Task.status!='완료').order_by(Task.due_date).limit(8).all()
     else:
-        my_tasks = Task.query.filter_by(assignee_id=current_user.id).filter(Task.status!='완료').order_by(Task.due_date).limit(5).all()
+        my_tasks = Task.query.filter_by(assignee_id=current_user.id).filter(Task.status!='완료').order_by(Task.due_date).limit(10).all()
     items_a = Item.query.filter(Item.line.contains('A')).all()
+
+    # ── 비관리자 전용: 내 업무 통계 + 마감 임박 + 수정 이력 ──
+    my_overdue = []
+    my_stats = {}
+    my_recent_revisions = []
+    if not has_perm('view_all_tasks'):
+        all_my = Task.query.filter_by(assignee_id=current_user.id).all()
+        my_active = [t for t in all_my if t.status == '진행중']
+        my_waiting = [t for t in all_my if t.status == '대기']
+        my_done_30d = [t for t in all_my if t.status == '완료' and t.completed_at and t.completed_at >= datetime.utcnow() - timedelta(days=30)]
+        my_overdue = [t for t in all_my if t.status != '완료' and t.due_date and t.due_date < today]
+        my_stats = {'active': len(my_active), 'waiting': len(my_waiting), 'done_30d': len(my_done_30d), 'overdue': len(my_overdue)}
+        # 최근 수정요청 (내 업무 중 revision_count > 0 인 것)
+        my_recent_revisions = [t for t in all_my if t.revision_count and t.revision_count > 0 and t.status != '완료']
+        # 최근 내게 온 코멘트 (내 업무에 달린 코멘트 최근 5개)
+        my_task_ids = [t.id for t in all_my]
+        my_recent_comments = []
+        if my_task_ids:
+            my_recent_comments = Comment.query.filter(
+                Comment.task_id.in_(my_task_ids), Comment.author_id != current_user.id
+            ).order_by(Comment.created_at.desc()).limit(5).all()
 
     # ── 소장/관리자 전용: 직원별 업무 현황 ──
     staff_stats = []
@@ -328,7 +349,10 @@ def dashboard():
                            my_tasks=my_tasks, items_a=items_a, today=today,
                            kakao_alerts=kakao_alerts,
                            staff_stats=staff_stats, overdue_tasks=overdue_tasks,
-                           supply_gap_alerts=supply_gap_alerts, item_stage_map=item_stage_map)
+                           supply_gap_alerts=supply_gap_alerts, item_stage_map=item_stage_map,
+                           my_overdue=my_overdue, my_stats=my_stats,
+                           my_recent_revisions=my_recent_revisions,
+                           my_recent_comments=my_recent_comments if not has_perm('view_all_tasks') else [])
 
 @app.route('/tasks')
 @login_required
@@ -338,8 +362,10 @@ def tasks():
     아직 차례가 안 된 미래 단계 태스크는 숨김.
     필터: ?assignee=me (내 업무만), ?assignee=3 (특정 담당자)"""
     STAGES = ['기획', '디자인', '컨펌/견적', '제작', '입고']
-    # 필터 파라미터
+    # 필터 파라미터 (비관리자는 기본 '내 업무')
     assignee_filter = request.args.get('assignee', '')
+    if not assignee_filter and not has_perm('view_all_tasks') and 'assignee' not in request.args:
+        assignee_filter = 'me'
 
     all_tasks = Task.query.order_by(Task.due_date).all()
 
@@ -875,14 +901,26 @@ def sample_revise(task_id):
     if design_task:
         design_task.status = '진행중'
         design_task.completed_at = None
+    # 수정 사유를 코멘트로 자동 기록
+    revision_reason = request.form.get('revision_reason', '').strip()
+    if revision_reason and design_task:
+        c = Comment(task_id=design_task.id, author_id=current_user.id,
+                    content=f'[수정요청 #{task.revision_count}차] {revision_reason}')
+        db.session.add(c)
+    elif design_task:
+        c = Comment(task_id=design_task.id, author_id=current_user.id,
+                    content=f'[수정요청 #{task.revision_count}차] (사유 미입력)')
+        db.session.add(c)
     # 관련자들에게 수정요청 알림
     item_name = task.item.name if task.item else task.title
+    reason_text = f': {revision_reason}' if revision_reason else ''
     _notify_task_related(
         task,
-        f'🔄 "{item_name}" 수정 요청 (#{task.revision_count}차) — 디자인 단계로 되돌아갑니다. ({current_user.name})',
+        f'🔄 "{item_name}" 수정 요청 (#{task.revision_count}차){reason_text} — 디자인 단계로 되돌아갑니다. ({current_user.name})',
         url_for('tasks'),
         '수정요청',
     )
+    _audit('수정요청', 'task', task.id, item_name, f'#{task.revision_count}차{reason_text}')
     db.session.commit()
     flash(f'수정 요청! (#{task.revision_count}차) 디자인 단계로 되돌아갑니다.', 'warning')
     return jsonify({'ok': True, 'revision_count': task.revision_count})
