@@ -1834,7 +1834,7 @@ function completeStandaloneTask(taskId) {
   }).then(r => r.json()).then(d => {
     if(d.ok) {
       if(confirm('업무가 완료되었습니다.\n\n이 기획을 상품으로 등록하시겠습니까?\n(상품관리 페이지로 이동합니다)')) {
-        window.location.href = '/items';
+        window.location.href = '/items?open_register=1';
       } else {
         location.reload();
       }
@@ -2342,6 +2342,13 @@ function readAllNotifications(e) {
   fetch('/api/notifications/read-all', { method:'POST' }).then(r=>r.json()).then(function(d) {
     if (d.ok) loadNotifications();
   });
+}
+// 상품 등록 팝업 자동 열기 (업무완료 → 상품등록 연결)
+if (window.location.search.indexOf('open_register=1') !== -1) {
+  var modal = document.getElementById('itemModal');
+  if (modal) modal.classList.add('show');
+  // URL에서 파라미터 제거 (뒤로가기 시 다시 안 뜨도록)
+  if (history.replaceState) history.replaceState(null, '', window.location.pathname);
 }
 // 30초마다 알림 뱃지 갱신
 setInterval(function() {
