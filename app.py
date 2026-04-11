@@ -701,11 +701,23 @@ def sample_approve(task_id):
         return jsonify({'ok': False, 'error': '컨펌/견적 태스크가 아닙니다'}), 400
     task.status = '완료'
     task.completed_at = datetime.utcnow()
-    # 다음 단계(제작) 활성화
+    # 다음 단계(제작) 활성화 — 없으면 자동 생성
     next_task = Task.query.filter_by(item_id=task.item_id, stage='제작').first()
     if next_task:
         next_task.status = '진행중'
         next_task.completed_at = None
+    elif task.item_id:
+        item = Item.query.get(task.item_id)
+        next_task = Task(
+            title=f'{item.name} 제작발주' if item else '제작발주',
+            item_id=task.item_id, stage='제작', status='진행중',
+            assignee_id=task.assignee_id,
+            priority='보통',
+            start_date=date.today(),
+            due_date=date.today() + timedelta(days=30),
+        )
+        db.session.add(next_task)
+        flash('"제작" 단계 업무가 자동 생성되었습니다.', 'info')
     # 관련자들에게 컨펌 승인 알림
     item_name = task.item.name if task.item else task.title
     _notify_task_related(
@@ -754,9 +766,23 @@ def skip_sample(task_id):
     task.status = '완료'
     task.completed_at = datetime.utcnow()
     task.title = task.title + ' (건너뜀)'
+    # 다음 단계(제작) 활성화 — 없으면 자동 생성
     next_task = Task.query.filter_by(item_id=task.item_id, stage='제작').first()
     if next_task:
         next_task.status = '진행중'
+        next_task.completed_at = None
+    elif task.item_id:
+        item = Item.query.get(task.item_id)
+        next_task = Task(
+            title=f'{item.name} 제작발주' if item else '제작발주',
+            item_id=task.item_id, stage='제작', status='진행중',
+            assignee_id=task.assignee_id,
+            priority='보통',
+            start_date=date.today(),
+            due_date=date.today() + timedelta(days=30),
+        )
+        db.session.add(next_task)
+        flash('"제작" 단계 업무가 자동 생성되었습니다.', 'info')
     db.session.commit()
     flash(f'컨펌/견적 건너뜀 → 제작 발주 단계로 이동합니다.', 'success')
     return jsonify({'ok': True})
