@@ -245,13 +245,90 @@ def dashboard():
         my_tasks = Task.query.filter_by(assignee_id=current_user.id).filter(Task.status!='완료').order_by(Task.due_date).limit(5).all()
     items_a = Item.query.filter(Item.line.contains('A')).all()
 
+    # ── 소장/관리자 전용: 직원별 업무 현황 ──
+    staff_stats = []
+    overdue_tasks = []
+    supply_gap_alerts = []
+    item_stage_map = []
+    if has_perm('view_all_tasks'):
+        STAGES = ['기획', '디자인', '컨펌/견적', '제작', '입고']
+        all_users = User.query.order_by(User.role, User.name).all()
+        for u in all_users:
+            u_tasks = Task.query.filter_by(assignee_id=u.id).all()
+            active = [t for t in u_tasks if t.status == '진행중']
+            waiting = [t for t in u_tasks if t.status == '대기']
+            done_30d = [t for t in u_tasks if t.status == '완료' and t.completed_at and t.completed_at >= datetime.utcnow() - timedelta(days=30)]
+            overdue = [t for t in u_tasks if t.status != '완료' and t.due_date and t.due_date < today]
+            staff_stats.append({
+                'user': u, 'active': len(active), 'waiting': len(waiting),
+                'done_30d': len(done_30d), 'overdue': len(overdue),
+                'total_open': len(active) + len(waiting),
+            })
+
+        # ── 지연 업무 목록 (마감일 지남 + 미완료) ──
+        overdue_tasks = Task.query.filter(
+            Task.status != '완료', Task.due_date < today
+        ).order_by(Task.due_date).limit(15).all()
+
+        # ── 소진 예측 vs 파이프라인 갭 경고 ──
+        selling_items = Item.query.filter(Item.status.in_(['판매중', '소진중']), Item.current_stock > 0).all()
+        for it in selling_items:
+            wks = WeeklyCount.query.filter_by(item_id=it.id).order_by(WeeklyCount.counted_at.desc()).limit(16).all()
+            weekly_avg = 0
+            if len(wks) >= 2:
+                consume_weeks = [w for w in wks if w.diff and w.diff < 0]
+                total_consumed = sum(abs(w.diff) for w in consume_weeks)
+                num_weeks = len(consume_weeks)
+                weekly_avg = round(total_consumed / num_weeks) if num_weeks > 0 else 0
+            if weekly_avg > 0 and it.current_stock:
+                remaining_weeks = it.current_stock // weekly_avg
+                # 12주(약 3개월) 이내 소진 예상이면 대체품 파이프라인 확인
+                if remaining_weeks <= 12:
+                    # 같은 카테고리에 기획~제작 중인 상품이 있는지 확인
+                    pipeline_exists = False
+                    if it.category_id:
+                        pipeline_exists = Item.query.filter(
+                            Item.category_id == it.category_id,
+                            Item.id != it.id,
+                            Item.status.in_(['기획중', '디자인중', '제작중', '입고대기'])
+                        ).first() is not None
+                    # 리뉴얼 업무가 진행 중인지도 확인
+                    renewal_exists = Task.query.filter(
+                        Task.item_id == it.id, Task.title.contains('리뉴얼'),
+                        Task.status.in_(['대기', '진행중'])
+                    ).first() is not None
+                    if not pipeline_exists and not renewal_exists:
+                        supply_gap_alerts.append({
+                            'item': it, 'remaining_weeks': remaining_weeks,
+                            'weekly_avg': weekly_avg,
+                            'severity': '긴급' if remaining_weeks <= 4 else '주의'
+                        })
+
+        # ── 상품별 현재 단계 요약 ──
+        active_items = Item.query.filter(Item.status.notin_(['소진완료', '단종'])).order_by(Item.line, Item.name).all()
+        for it in active_items:
+            current_stage = '-'
+            assignee_name = '-'
+            # 진행중인 태스크 찾기
+            active_task = Task.query.filter_by(item_id=it.id, status='진행중').first()
+            if active_task:
+                current_stage = active_task.stage or '-'
+                assignee_name = active_task.assignee.name if active_task.assignee else '-'
+            elif it.status in ('판매중', '소진중'):
+                current_stage = '판매중'
+            item_stage_map.append({
+                'item': it, 'stage': current_stage, 'assignee': assignee_name
+            })
+
     return render_template('index.html', page='dashboard',
                            due_count=due_count, nearest_item_name=nearest_item_name, days_left=days_left,
                            stock_alerts=stock_alerts, lowest_item=lowest_item, lowest_pct=round(lowest_pct, 1) if lowest_item else 0,
                            pipeline_count=pipeline_count, pipeline_items=pipeline_items,
                            selling_count=selling_count, avg_remain_pct=avg_remain_pct,
                            my_tasks=my_tasks, items_a=items_a, today=today,
-                           kakao_alerts=kakao_alerts)
+                           kakao_alerts=kakao_alerts,
+                           staff_stats=staff_stats, overdue_tasks=overdue_tasks,
+                           supply_gap_alerts=supply_gap_alerts, item_stage_map=item_stage_map)
 
 @app.route('/tasks')
 @login_required

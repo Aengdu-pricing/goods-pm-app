@@ -227,6 +227,130 @@
     </div>
   </div>
 
+  {% if user_is_admin %}
+  <!-- ═══ 소장/관리자 전용: 소진 예측 경고 ═══ -->
+  {% if supply_gap_alerts %}
+  <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 18px;margin-bottom:14px">
+    <div style="font-weight:600;font-size:14px;color:#dc2626;margin-bottom:8px">🚨 소진 예측 경고 — 대체품 파이프라인 없음</div>
+    <p style="font-size:11px;color:#991b1b;margin-bottom:10px">아래 상품은 소진 예상 시점이 다가오지만, 같은 카테고리의 대체품이나 리뉴얼 업무가 진행되고 있지 않습니다.</p>
+    <table style="width:100%;font-size:12px;border-collapse:collapse">
+      <thead><tr style="background:#fee2e2;color:#991b1b">
+        <th style="padding:5px 8px;text-align:left">상품</th>
+        <th style="padding:5px 8px;text-align:right">현재 재고</th>
+        <th style="padding:5px 8px;text-align:right">주간 소진</th>
+        <th style="padding:5px 8px;text-align:right">잔여 주수</th>
+        <th style="padding:5px 8px;text-align:center">긴급도</th>
+        <th style="padding:5px 8px;text-align:center">조치</th>
+      </tr></thead>
+      <tbody>
+      {% for sg in supply_gap_alerts %}
+      <tr style="border-bottom:1px solid #fecaca">
+        <td style="padding:5px 8px;font-weight:600">{{ sg.item.name }}</td>
+        <td style="padding:5px 8px;text-align:right">{{ '{:,}'.format(sg.item.current_stock) }}개</td>
+        <td style="padding:5px 8px;text-align:right">~{{ sg.weekly_avg }}개/주</td>
+        <td style="padding:5px 8px;text-align:right;font-weight:600;color:{{ '#dc2626' if sg.remaining_weeks <= 4 else '#d97706' }}">{{ sg.remaining_weeks }}주</td>
+        <td style="padding:5px 8px;text-align:center"><span style="background:{{ '#dc2626' if sg.severity == '긴급' else '#f59e0b' }};color:#fff;padding:1px 8px;border-radius:4px;font-size:10px">{{ sg.severity }}</span></td>
+        <td style="padding:5px 8px;text-align:center">
+          <button onclick="openRenewalModal({{ sg.item.id }}, '{{ sg.item.name }}')" style="padding:2px 8px;font-size:10px;background:#7C6DAF;color:#fff;border:none;border-radius:4px;cursor:pointer">리뉴얼</button>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- ═══ 지연 업무 ═══ -->
+  {% if overdue_tasks %}
+  <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px 18px;margin-bottom:14px">
+    <div style="font-weight:600;font-size:14px;color:#d97706;margin-bottom:8px">⏰ 지연 업무 {{ overdue_tasks|length }}건</div>
+    <table style="width:100%;font-size:12px;border-collapse:collapse">
+      <thead><tr style="background:#fef3c7;color:#92400e">
+        <th style="padding:4px 8px;text-align:left">업무</th>
+        <th style="padding:4px 8px;text-align:left">상품</th>
+        <th style="padding:4px 8px;text-align:left">단계</th>
+        <th style="padding:4px 8px;text-align:left">담당자</th>
+        <th style="padding:4px 8px;text-align:right">마감일</th>
+        <th style="padding:4px 8px;text-align:right">지연</th>
+      </tr></thead>
+      <tbody>
+      {% for t in overdue_tasks %}
+      <tr style="border-bottom:1px solid #fde68a">
+        <td style="padding:4px 8px">{{ t.title[:20] }}{% if t.title|length > 20 %}…{% endif %}</td>
+        <td style="padding:4px 8px">{{ t.item.name[:15] if t.item else '-' }}</td>
+        <td style="padding:4px 8px"><span style="background:#f5f5f5;padding:1px 6px;border-radius:3px;font-size:10px">{{ t.stage or '-' }}</span></td>
+        <td style="padding:4px 8px;font-weight:600">{{ t.assignee.name if t.assignee else '-' }}</td>
+        <td style="padding:4px 8px;text-align:right">{{ t.due_date.strftime('%m/%d') }}</td>
+        <td style="padding:4px 8px;text-align:right;color:#dc2626;font-weight:600">D+{{ (today - t.due_date).days }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- ═══ 직원별 업무 현황 + 상품별 단계 ═══ -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">
+    <!-- 직원별 업무 현황 -->
+    <div class="card">
+      <h3 style="font-size:14px">👥 직원별 업무 현황</h3>
+      <table style="width:100%;font-size:12px;border-collapse:collapse;margin-top:8px">
+        <thead><tr style="background:var(--bg)">
+          <th style="padding:4px 6px;text-align:left">이름</th>
+          <th style="padding:4px 6px;text-align:left">역할</th>
+          <th style="padding:4px 6px;text-align:center">진행중</th>
+          <th style="padding:4px 6px;text-align:center">대기</th>
+          <th style="padding:4px 6px;text-align:center">30일 완료</th>
+          <th style="padding:4px 6px;text-align:center">지연</th>
+        </tr></thead>
+        <tbody>
+        {% for s in staff_stats %}
+        {% if s.total_open > 0 or s.done_30d > 0 %}
+        <tr style="border-bottom:1px solid var(--border-light)">
+          <td style="padding:4px 6px;font-weight:600"><a href="/tasks?assignee={{ s.user.id }}" style="color:var(--brown);text-decoration:none">{{ s.user.name }}</a></td>
+          <td style="padding:4px 6px;font-size:11px;color:var(--text-light)">{{ s.user.role }}</td>
+          <td style="padding:4px 6px;text-align:center;color:var(--green);font-weight:600">{{ s.active }}</td>
+          <td style="padding:4px 6px;text-align:center">{{ s.waiting }}</td>
+          <td style="padding:4px 6px;text-align:center;color:var(--green)">{{ s.done_30d }}</td>
+          <td style="padding:4px 6px;text-align:center;{{ 'color:#dc2626;font-weight:600' if s.overdue > 0 else 'color:#aaa' }}">{{ s.overdue }}</td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 상품별 현재 단계 -->
+    <div class="card" style="max-height:400px;overflow-y:auto">
+      <h3 style="font-size:14px">📊 상품별 현재 단계</h3>
+      <table style="width:100%;font-size:11px;border-collapse:collapse;margin-top:8px">
+        <thead><tr style="background:var(--bg)">
+          <th style="padding:4px 6px;text-align:left">상품</th>
+          <th style="padding:4px 6px;text-align:left">라인</th>
+          <th style="padding:4px 6px;text-align:center">상태</th>
+          <th style="padding:4px 6px;text-align:center">현재 단계</th>
+          <th style="padding:4px 6px;text-align:left">담당자</th>
+        </tr></thead>
+        <tbody>
+        {% for m in item_stage_map %}
+        <tr style="border-bottom:1px solid var(--border-light)">
+          <td style="padding:3px 6px;font-weight:500">{{ m.item.name[:18] }}{% if m.item.name|length > 18 %}…{% endif %}</td>
+          <td style="padding:3px 6px">{{ m.item.line }}</td>
+          <td style="padding:3px 6px;text-align:center"><span class="status-badge {{ 'active' if m.item.status in ('판매중','소진중') else 'plan' }}">{{ m.item.status }}</span></td>
+          <td style="padding:3px 6px;text-align:center">
+            {% if m.stage == '판매중' %}<span style="color:var(--green)">✅ 판매중</span>
+            {% elif m.stage == '-' %}<span style="color:#aaa">-</span>
+            {% else %}<span style="background:var(--bg);padding:1px 8px;border-radius:4px">{{ m.stage }}</span>{% endif %}
+          </td>
+          <td style="padding:3px 6px">{{ m.assignee }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- ═══ TASKS (KANBAN — 5단계 파이프라인) ═══ -->
   {% elif page == 'tasks' %}
   <!-- 업무 필터 바 -->
