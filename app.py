@@ -530,6 +530,13 @@ def advance_task(task_id):
     task.status = '완료'
     task.completed_at = datetime.utcnow()
 
+    # 팝업에서 선택한 담당자
+    next_assignee_id = request.form.get('next_assignee_id')
+    if next_assignee_id:
+        next_assignee_id = int(next_assignee_id)
+
+    assigned_user = None
+
     if current_idx >= 0 and current_idx < len(STAGES) - 1:
         next_stage = STAGES[current_idx + 1]
         next_task = Task.query.filter_by(item_id=task.item_id, stage=next_stage).first()
@@ -538,11 +545,14 @@ def advance_task(task_id):
             # 기존 태스크가 있으면 활성화
             if next_task.status == '대기':
                 next_task.status = '진행중'
+            if next_assignee_id:
+                next_task.assignee_id = next_assignee_id
+            assigned_user = User.query.get(next_task.assignee_id) if next_task.assignee_id else None
         elif task.item_id:
             # 다음 단계 태스크가 없으면 자동 생성
             defaults = STAGE_DEFAULTS.get(next_stage, {})
-            assignee_id = task.assignee_id  # 기본: 현재 담당자
-            if defaults.get('assignee_role'):
+            assignee_id = next_assignee_id or task.assignee_id  # 팝업 선택 > 기본값
+            if not next_assignee_id and defaults.get('assignee_role'):
                 role_user = User.query.filter_by(role=defaults['assignee_role']).first()
                 if role_user:
                     assignee_id = role_user.id
@@ -560,13 +570,28 @@ def advance_task(task_id):
                 due_date=date.today() + timedelta(days=defaults.get('days', 14)),
             )
             db.session.add(new_task)
+            db.session.flush()
+            assigned_user = User.query.get(assignee_id) if assignee_id else None
             flash(f'"{next_stage}" 단계 업무가 자동 생성되었습니다.', 'info')
+
+        # 담당자에게 알림 발송
+        if assigned_user and assigned_user.id != current_user.id:
+            item = Item.query.get(task.item_id) if task.item_id else None
+            item_name = item.name if item else task.title
+            noti = Notification(
+                recipient_id=assigned_user.id,
+                message=f'{current_user.name}님이 "{item_name}" {next_stage} 단계를 배정했습니다.',
+                link=url_for('tasks'),
+                noti_type='업무배정',
+            )
+            db.session.add(noti)
 
     db.session.commit()
     if not task.item_id:
         flash(f'"{task.title}" 업무가 완료되었습니다.', 'success')
     else:
-        flash(f'"{task.stage}" 완료 → 다음 단계로 이동합니다.', 'success')
+        who = f' → {assigned_user.name}님 배정' if assigned_user else ''
+        flash(f'"{task.stage}" 완료 → 다음 단계로 이동{who}', 'success')
     return jsonify({'ok': True})
 
 @app.route('/tasks/<int:task_id>/production', methods=['POST'])
