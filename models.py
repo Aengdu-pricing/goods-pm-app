@@ -236,6 +236,19 @@ class RolePermission(db.Model):
     enabled = db.Column(db.Boolean, default=False)
     __table_args__ = (db.UniqueConstraint('role', 'permission', name='uq_role_perm'),)
 
+# ─── Audit Log (변경 이력) ───
+class AuditLog(db.Model):
+    __tablename__ = 'audit_logs'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    action = db.Column(db.String(50), nullable=False)  # 생성/수정/삭제/상태변경/승인/되돌리기 등
+    target_type = db.Column(db.String(30))  # item/task/checklist/kakao 등
+    target_id = db.Column(db.Integer)
+    target_name = db.Column(db.String(200))  # 표시용 이름
+    detail = db.Column(db.Text)  # 변경 세부 (예: "상태: 기획중 → 판매중")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.relationship('User', backref='audit_logs')
+
 class Performance(db.Model):
     __tablename__ = 'performance'
     id = db.Column(db.Integer, primary_key=True)

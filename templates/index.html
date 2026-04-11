@@ -36,6 +36,7 @@
     {% if user_is_admin %}
     <a href="{{ url_for('admin_users') }}" class="{% if page=='admin_users' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><circle cx="8" cy="6" r="3.5"/><path d="M2 17c0-3.5 2.5-6 6-6s6 2.5 6 6"/><circle cx="15" cy="7" r="2.5"/><path d="M15 11c2 0 4 1.5 4 4"/></svg></span>사용자 관리</a>
     <a href="{{ url_for('admin_permissions') }}" class="{% if page=='admin_permissions' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><path d="M10 2L3 6v5c0 4.4 3 8.5 7 9.5 4-1 7-5.1 7-9.5V6z"/><path d="M7 10l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></span>권한 설정</a>
+    <a href="{{ url_for('audit_log') }}" class="{% if page=='audit_log' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><path d="M3 3h14v14H3z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M6 7h8M6 10h6M6 13h4" stroke="currentColor" stroke-width="1" opacity=".6"/></svg></span>변경 이력</a>
     {% endif %}
   </nav>
   <a href="https://grim-timi-positivethinking-72254524.koyeb.app/" target="_blank" class="ext-link">
@@ -228,6 +229,15 @@
 
   <!-- ═══ TASKS (KANBAN — 5단계 파이프라인) ═══ -->
   {% elif page == 'tasks' %}
+  <!-- 업무 필터 바 -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+    <a href="{{ url_for('tasks') }}" class="btn-outline" style="padding:4px 12px;font-size:12px;{{ 'background:var(--brown);color:#fff' if not assignee_filter else '' }}">전체</a>
+    <a href="{{ url_for('tasks', assignee='me') }}" class="btn-outline" style="padding:4px 12px;font-size:12px;{{ 'background:var(--brown);color:#fff' if assignee_filter == 'me' else '' }}">👤 내 업무만</a>
+    <select onchange="if(this.value)location.href='/tasks?assignee='+this.value;else location.href='/tasks'" style="padding:4px 8px;font-size:12px;border:1px solid #ddd;border-radius:6px">
+      <option value="">담당자 선택</option>
+      {% for u in users %}<option value="{{ u.id }}" {{ 'selected' if assignee_filter == u.id|string }}>{{ u.name }}</option>{% endfor %}
+    </select>
+  </div>
   <div class="kanban">
     {% set stage_icons = {'기획':'📝','디자인':'🎨','컨펌/견적':'✅','제작':'🏭','입고':'📦'} %}
     {% for stage_name in STAGES %}
@@ -313,6 +323,28 @@
           {% endif %}
         </div>
         {% endif %}
+
+        {# ── 코멘트 ── #}
+        <div style="margin-top:6px">
+          <button onclick="toggleComments({{ t.id }})" style="font-size:10px;background:none;border:none;color:var(--brown);cursor:pointer;padding:0">
+            💬 코멘트 {% if t.comments|length > 0 %}<span style="background:var(--brown);color:#fff;border-radius:10px;padding:0 5px;font-size:9px;margin-left:2px">{{ t.comments|length }}</span>{% endif %}
+          </button>
+          <div id="comments-{{ t.id }}" style="display:none;margin-top:4px;font-size:11px;max-height:150px;overflow-y:auto">
+            <div id="comment-list-{{ t.id }}">
+              {% for c in t.comments %}
+              <div style="background:#fafafa;border-radius:4px;padding:4px 6px;margin-bottom:3px">
+                <span style="font-weight:600;color:var(--brown)">{{ c.author.name if c.author else '?' }}</span>
+                <span style="color:#aaa;font-size:9px;margin-left:4px">{{ c.created_at.strftime('%m/%d %H:%M') if c.created_at else '' }}</span>
+                <div style="margin-top:1px">{{ c.content }}</div>
+              </div>
+              {% endfor %}
+            </div>
+            <form onsubmit="return addComment(event, {{ t.id }})" style="display:flex;gap:3px;margin-top:4px">
+              <input type="text" id="comment-input-{{ t.id }}" placeholder="코멘트 입력..." style="flex:1;padding:4px 6px;font-size:11px;border:1px solid #ddd;border-radius:4px">
+              <button type="submit" style="padding:4px 8px;font-size:10px;background:var(--brown);color:#fff;border:none;border-radius:4px;cursor:pointer">전송</button>
+            </form>
+          </div>
+        </div>
 
         {# ── 하단 액션 버튼 ── #}
         <div style="margin-top:8px;display:flex;gap:4px">
@@ -469,7 +501,8 @@
           <td style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
             <button type="button" onclick="openEditModal({{ it.id }})" class="btn-edit">수정</button>
             <button type="button" onclick="openRenewalModal({{ it.id }}, '{{ it.name }}')" style="padding:3px 8px;font-size:11px;background:#7C6DAF;color:#fff;border:none;border-radius:4px;cursor:pointer">🔄 리뉴얼</button>
-            <form method="POST" action="{{ url_for('delete_item', item_id=it.id) }}" style="display:inline" onsubmit="return confirm('「{{ it.name }}」을(를) 삭제하시겠습니까?\n연결된 업무도 함께 삭제됩니다.')">
+            <button type="button" onclick="duplicateItem({{ it.id }}, '{{ it.name }}')" style="padding:3px 8px;font-size:11px;background:#5b9bd5;color:#fff;border:none;border-radius:4px;cursor:pointer">📋 복제</button>
+            <form method="POST" action="{{ url_for('delete_item', item_id=it.id) }}" style="display:inline" onsubmit="return confirm('「{{ it.name }}」을(를) 삭제하시겠습니까?\n연결된 업무·체크리스트도 함께 삭제됩니다.\n\n이 작업은 되돌릴 수 없습니다.')">
               <button type="submit" class="btn-del">삭제</button>
             </form>
           </td>
@@ -1376,6 +1409,7 @@
         {% if c.checked and c.checker %}
         <span style="font-size:10px;color:#aaa">{{ c.checker.name }}</span>
         {% endif %}
+        <button onclick="editCheckItem({{ c.id }}, this)" style="background:none;border:none;color:#bbb;cursor:pointer;font-size:11px;padding:0 2px" title="수정">✏️</button>
         <button onclick="deleteCheckItem({{ c.id }}, {{ ic.item.id }})" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:14px;padding:0 2px" title="삭제">&times;</button>
       </div>
       {% endfor %}
@@ -1824,6 +1858,33 @@
     </div>
   </div>
 
+  <!-- ═══ AUDIT LOG ═══ -->
+  {% elif page == 'audit_log' %}
+  <div class="card">
+    <h2>📋 변경 이력</h2>
+    <p style="font-size:12px;color:var(--text-light);margin-bottom:16px">최근 200건의 시스템 변경 이력입니다.</p>
+    <table style="width:100%;font-size:12px;border-collapse:collapse">
+      <thead><tr style="background:var(--bg)">
+        <th style="padding:6px 8px;text-align:left">시간</th>
+        <th style="padding:6px 8px;text-align:left">사용자</th>
+        <th style="padding:6px 8px;text-align:left">액션</th>
+        <th style="padding:6px 8px;text-align:left">대상</th>
+        <th style="padding:6px 8px;text-align:left">세부</th>
+      </tr></thead>
+      <tbody>
+      {% for log in audit_logs %}
+        <tr style="border-bottom:1px solid var(--border-light)">
+          <td style="padding:5px 8px;white-space:nowrap;color:var(--text-light)">{{ log.created_at.strftime('%m/%d %H:%M') if log.created_at else '' }}</td>
+          <td style="padding:5px 8px;font-weight:600">{{ log.user.name if log.user else '시스템' }}</td>
+          <td style="padding:5px 8px"><span style="background:{{ '#e8f5e9' if log.action in ('등록','승인','입고완료') else '#fff3e0' if log.action in ('수정','되돌리기') else '#ffebee' if log.action=='삭제' else '#e3f2fd' }};padding:2px 8px;border-radius:4px;font-size:11px">{{ log.action }}</span></td>
+          <td style="padding:5px 8px">{{ log.target_name or '' }}</td>
+          <td style="padding:5px 8px;color:var(--text-light);max-width:300px;overflow:hidden;text-overflow:ellipsis">{{ log.detail or '' }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
   <!-- ═══ PROFILE ═══ -->
   {% elif page == 'profile' %}
   <div class="card" style="max-width:520px">
@@ -2268,6 +2329,66 @@ function deleteCheckItem(checkId, itemId) {
         if(barEl) barEl.style.width = d.pct + '%';
       }
     });
+}
+
+function editCheckItem(checkId, btn) {
+  var row = document.getElementById('clRow' + checkId);
+  if(!row) return;
+  var labelSpan = row.querySelector('span');
+  var oldLabel = labelSpan.textContent;
+  var input = document.createElement('input');
+  input.type = 'text'; input.value = oldLabel;
+  input.style.cssText = 'flex:1;padding:3px 6px;font-size:12px;border:1px solid var(--brown);border-radius:4px';
+  labelSpan.replaceWith(input);
+  input.focus(); input.select();
+  function save() {
+    var newLabel = input.value.trim();
+    if(!newLabel || newLabel === oldLabel) { input.replaceWith(labelSpan); return; }
+    var fd = new FormData(); fd.append('label', newLabel);
+    fetch('/checklist/edit/' + checkId, { method: 'POST', body: fd })
+      .then(function(r){ return r.json(); }).then(function(d) {
+        if(d.ok) { labelSpan.textContent = d.label; }
+        input.replaceWith(labelSpan);
+      });
+  }
+  input.onblur = save;
+  input.onkeydown = function(e) { if(e.key==='Enter') { e.preventDefault(); save(); } if(e.key==='Escape') { input.replaceWith(labelSpan); } };
+}
+
+function toggleComments(taskId) {
+  var el = document.getElementById('comments-' + taskId);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function addComment(e, taskId) {
+  e.preventDefault();
+  var input = document.getElementById('comment-input-' + taskId);
+  var content = input.value.trim();
+  if(!content) return false;
+  var fd = new FormData(); fd.append('content', content);
+  fetch('/tasks/' + taskId + '/comments', { method: 'POST', body: fd })
+    .then(function(r){ return r.json(); }).then(function(d) {
+      if(d.ok) {
+        var list = document.getElementById('comment-list-' + taskId);
+        var div = document.createElement('div');
+        div.style.cssText = 'background:#fafafa;border-radius:4px;padding:4px 6px;margin-bottom:3px';
+        div.innerHTML = '<span style="font-weight:600;color:var(--brown)">' + d.comment.author + '</span>' +
+          '<span style="color:#aaa;font-size:9px;margin-left:4px">' + d.comment.created_at + '</span>' +
+          '<div style="margin-top:1px">' + d.comment.content + '</div>';
+        list.appendChild(div);
+        input.value = '';
+      }
+    });
+  return false;
+}
+
+function duplicateItem(itemId, itemName) {
+  var newName = prompt('복제할 상품명을 입력하세요:', itemName + ' (복사)');
+  if(!newName) return;
+  var form = document.createElement('form');
+  form.method = 'POST'; form.action = '/items/' + itemId + '/duplicate';
+  var inp = document.createElement('input'); inp.type = 'hidden'; inp.name = 'new_name'; inp.value = newName;
+  form.appendChild(inp); document.body.appendChild(form); form.submit();
 }
 
 function aiSuggest(itemId) {

@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from models import db, User, Category, Item, Task, Comment, InventoryLog, WeeklyCount, Feedback, Idea, KakaoEvent, CostRecord, Performance, Attachment, ChecklistItem, Notification, RolePermission, Role
+from models import db, User, Category, Item, Task, Comment, InventoryLog, WeeklyCount, Feedback, Idea, KakaoEvent, CostRecord, Performance, Attachment, ChecklistItem, Notification, RolePermission, Role, AuditLog
 
 app = Flask(__name__)
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -258,14 +258,25 @@ def dashboard():
 def tasks():
     """칸반: 5단계(기획→디자인→컨펌/견적→제작→입고) 기반
     규칙: 품목별로 현재 활성 단계(진행중)와 바로 다음 대기 단계만 표시.
-    아직 차례가 안 된 미래 단계 태스크는 숨김."""
+    아직 차례가 안 된 미래 단계 태스크는 숨김.
+    필터: ?assignee=me (내 업무만), ?assignee=3 (특정 담당자)"""
     STAGES = ['기획', '디자인', '컨펌/견적', '제작', '입고']
+    # 필터 파라미터
+    assignee_filter = request.args.get('assignee', '')
+
     all_tasks = Task.query.order_by(Task.due_date).all()
 
-    # 품목별로 현재 활성 단계 파악
-    # item_id → 진행중인 가장 높은 stage index (없으면 -1)
+    # 담당자 필터 적용
+    if assignee_filter == 'me':
+        all_tasks = [t for t in all_tasks if t.assignee_id == current_user.id]
+    elif assignee_filter.isdigit():
+        aid = int(assignee_filter)
+        all_tasks = [t for t in all_tasks if t.assignee_id == aid]
+
+    # 품목별로 현재 활성 단계 파악 (필터 전 전체 기준 — 숨김 로직은 전체 상태를 알아야 하므로)
+    all_tasks_full = Task.query.all()
     item_active_idx = {}  # item_id → int
-    for t in all_tasks:
+    for t in all_tasks_full:
         if t.item_id and t.status in ('진행중', '완료') and t.stage in STAGES:
             idx = STAGES.index(t.stage)
             prev = item_active_idx.get(t.item_id, -1)
@@ -291,12 +302,10 @@ def tasks():
         if t.status == '진행중':
             stage_tasks[t.stage].append(t)
         elif task_idx <= active_idx:
-            # 현재 활성 이하 (이미 지난 대기 = 사실상 보여야 함)
             stage_tasks[t.stage].append(t)
         elif task_idx == active_idx + 1 and t.status == '대기':
-            # 바로 다음 단계 대기 → 표시 (곧 시작할 업무)
             stage_tasks[t.stage].append(t)
-        elif active_idx == -1 and task_idx == 0:
+        elif active_idx == -1 and task_idx <= 0:
             # 아직 아무것도 시작 안 한 품목의 첫 단계
             stage_tasks[t.stage].append(t)
         # 그 외 미래 단계 대기 → 숨김
@@ -304,7 +313,7 @@ def tasks():
     users = User.query.order_by(User.role, User.name).all()
     return render_template('index.html', page='tasks',
                            stage_tasks=stage_tasks, done_tasks=done_tasks, STAGES=STAGES,
-                           today=date.today(), users=users)
+                           today=date.today(), users=users, assignee_filter=assignee_filter)
 
 @app.route('/items')
 @login_required
@@ -395,6 +404,11 @@ def create_item():
     # 퀄리티 체크리스트 자동 생성 (카테고리 기반)
     checklist_count = _create_checklist_for_item(item)
 
+    # 중복 이름 경고 (삭제하지 않고 경고만)
+    existing_same_name = Item.query.filter(Item.name == name, Item.id != item.id).first()
+    if existing_same_name:
+        flash(f'⚠️ 동일 이름 상품 "{name}"이 이미 있습니다. 확인해주세요.', 'warning')
+
     # 상품 등록 알림: 관련자 + 상위 3역할
     _notify_related_and_admins(
         item,
@@ -402,6 +416,7 @@ def create_item():
         url_for('items'),
         '상품등록',
     )
+    _audit('등록', 'item', item.id, name, f'{line}라인, {usage}')
 
     db.session.commit()
     if is_existing:
@@ -492,14 +507,33 @@ def edit_item(item_id):
 @login_required
 def delete_item(item_id):
     item = Item.query.get_or_404(item_id)
+    # 권한 체크: 본인 소유 or 관리자만 삭제 가능
+    if item.owner_id != current_user.id and not is_admin():
+        flash('상품 삭제는 담당자 또는 관리자만 가능합니다.', 'error')
+        return redirect(url_for('items'))
     name = item.name
-    # 연결된 태스크도 삭제
+    # 관련자에게 삭제 알림
+    _notify_related_and_admins(
+        item,
+        f'🗑️ "{name}" 상품이 {current_user.name}님에 의해 삭제되었습니다.',
+        url_for('items'),
+        '상품삭제',
+    )
+    # Audit Log
+    task_count = Task.query.filter_by(item_id=item_id).count()
+    _audit('삭제', 'item', item_id, name, f'연결 업무 {task_count}건 함께 삭제')
+    # 연결된 데이터 삭제
+    Comment.query.filter(Comment.task_id.in_(
+        db.session.query(Task.id).filter_by(item_id=item_id)
+    )).delete(synchronize_session='fetch')
     Task.query.filter_by(item_id=item_id).delete()
     WeeklyCount.query.filter_by(item_id=item_id).delete()
     InventoryLog.query.filter_by(item_id=item_id).delete()
+    ChecklistItem.query.filter_by(item_id=item_id).delete()
+    CostRecord.query.filter_by(item_id=item_id).delete()
     db.session.delete(item)
     db.session.commit()
-    flash(f'"{name}" 상품이 삭제되었습니다.', 'success')
+    flash(f'"{name}" 상품이 삭제되었습니다. (연결 업무 {task_count}건 포함)', 'success')
     return redirect(url_for('items'))
 
 @app.route('/api/items/<int:item_id>')
@@ -623,6 +657,8 @@ def advance_task(task_id):
             '업무배정',
         )
 
+    item_name = task.item.name if task.item else task.title
+    _audit('다음단계', 'task', task.id, item_name, f'{task.stage} 완료')
     db.session.commit()
     if not task.item_id:
         flash(f'"{task.title}" 업무가 완료되었습니다.', 'success')
@@ -666,6 +702,7 @@ def revert_task(task_id):
         url_for('tasks'),
         '되돌리기',
     )
+    _audit('되돌리기', 'task', task.id, item_name, f'{task.stage} → {prev_stage}')
     db.session.commit()
     flash(f'"{task.stage}" → "{prev_stage}" 단계로 되돌렸습니다.', 'info')
     return jsonify({'ok': True})
@@ -689,6 +726,7 @@ def complete_delivery(task_id):
         url_for('inventory'),
         '입고완료',
     )
+    _audit('입고완료', 'item', task.item_id or 0, item_name, '상태 → 판매중')
     db.session.commit()
     flash(f'🎉 "{item_name}" 입고 완료! 재고 수량을 확인해주세요.', 'success')
     return jsonify({'ok': True, 'redirect': url_for('inventory'), 'item_name': item_name})
@@ -741,6 +779,7 @@ def sample_approve(task_id):
         url_for('tasks'),
         '컨펌승인',
     )
+    _audit('승인', 'task', task.id, item_name, '컨펌/견적 승인 → 제작')
     db.session.commit()
     flash(f'샘플 승인 완료! 제작 발주 단계로 넘어갑니다.', 'success')
     return jsonify({'ok': True})
@@ -1292,13 +1331,23 @@ def submit_weekly_count():
     item_id = int(request.form['item_id'])
     counted_qty = int(request.form['counted_qty'])
     item = Item.query.get_or_404(item_id)
+    # 중복 방지: 같은 날짜에 이미 실사한 기록이 있으면 업데이트
+    existing = WeeklyCount.query.filter_by(item_id=item_id, counted_at=date.today()).first()
     prev = item.current_stock
-    wc = WeeklyCount(item_id=item_id, counted_qty=counted_qty, counted_by=current_user.id,
-                     counted_at=date.today(), prev_system_qty=prev, diff=counted_qty - prev, status='확정')
+    if existing:
+        existing.counted_qty = counted_qty
+        existing.prev_system_qty = prev
+        existing.diff = counted_qty - prev
+        existing.counted_by = current_user.id
+        flash(f'{item.name} 오늘 실사 기록이 업데이트되었습니다. ({counted_qty}개)', 'info')
+    else:
+        wc = WeeklyCount(item_id=item_id, counted_qty=counted_qty, counted_by=current_user.id,
+                         counted_at=date.today(), prev_system_qty=prev, diff=counted_qty - prev, status='확정')
+        db.session.add(wc)
+        flash(f'{item.name} 재고가 {counted_qty}개로 업데이트되었습니다.', 'success')
     item.current_stock = counted_qty
-    db.session.add(wc)
+    _audit('실사', 'item', item_id, item.name, f'{prev} → {counted_qty} (차이: {counted_qty - prev})')
     db.session.commit()
-    flash(f'{item.name} 재고가 {counted_qty}개로 업데이트되었습니다.', 'success')
     return redirect(url_for('inventory'))
 
 @app.route('/inventory/upload-pdf', methods=['POST'])
@@ -1787,10 +1836,24 @@ def delete_check_item(check_id):
     pct = round(done / total * 100) if total else 0
     return jsonify({'ok': True, 'pct': pct, 'done': done, 'total': total})
 
+@app.route('/checklist/edit/<int:check_id>', methods=['POST'])
+@login_required
+def edit_check_item(check_id):
+    """체크리스트 항목 이름 수정"""
+    ci = ChecklistItem.query.get_or_404(check_id)
+    new_label = request.form.get('label', '').strip()
+    if not new_label:
+        return jsonify({'ok': False, 'error': '항목명을 입력하세요'})
+    old_label = ci.label
+    ci.label = new_label
+    _audit('수정', 'checklist', ci.id, new_label, f'"{old_label}" → "{new_label}"')
+    db.session.commit()
+    return jsonify({'ok': True, 'label': ci.label})
+
 @app.route('/checklist/ai-suggest/<int:item_id>', methods=['POST'])
 @login_required
 def ai_suggest_checks(item_id):
-    """AI 기반 추가 체크 항목 제안 — 품목 특성에 맞춘 맞춤 가이드"""
+    """AI 기반 추가 체크 항목 제안 — 품목 특성에 맞춤 가이드"""
     item = Item.query.get_or_404(item_id)
     cat_name = item.category_ref.name if item.category_ref else ''
     line = item.line or ''
@@ -2217,6 +2280,99 @@ def _notify_task_related(task, message, link, noti_type, exclude_user_id=None):
     """업무 관련자들에게 알림"""
     related = _get_task_related_users(task)
     _notify(related, message, link, noti_type, exclude_user_id)
+
+# ──────────────────────────────────────────────
+# Audit Log 헬퍼
+# ──────────────────────────────────────────────
+def _audit(action, target_type, target_id, target_name, detail=''):
+    """변경 이력 기록"""
+    user_id = current_user.id if current_user and current_user.is_authenticated else None
+    log = AuditLog(user_id=user_id, action=action, target_type=target_type,
+                   target_id=target_id, target_name=target_name, detail=detail)
+    db.session.add(log)
+
+# ──────────────────────────────────────────────
+# 코멘트 라우트
+# ──────────────────────────────────────────────
+@app.route('/tasks/<int:task_id>/comments', methods=['GET'])
+@login_required
+def get_comments(task_id):
+    """업무의 코멘트 목록 조회"""
+    task = Task.query.get_or_404(task_id)
+    comments = Comment.query.filter_by(task_id=task_id).order_by(Comment.created_at.asc()).all()
+    return jsonify({'ok': True, 'comments': [
+        {'id': c.id, 'author': c.author.name if c.author else '?', 'author_role': c.author.role if c.author else '',
+         'content': c.content, 'created_at': c.created_at.strftime('%m/%d %H:%M') if c.created_at else ''}
+        for c in comments
+    ]})
+
+@app.route('/tasks/<int:task_id>/comments', methods=['POST'])
+@login_required
+def add_comment(task_id):
+    """업무에 코멘트 추가"""
+    task = Task.query.get_or_404(task_id)
+    content = request.form.get('content', '').strip()
+    if not content:
+        return jsonify({'ok': False, 'error': '내용을 입력하세요'})
+    c = Comment(task_id=task_id, author_id=current_user.id, content=content)
+    db.session.add(c)
+    # 관련자에게 알림
+    item_name = task.item.name if task.item else task.title
+    _notify_task_related(
+        task,
+        f'💬 "{item_name}" 업무에 {current_user.name}님이 코멘트를 남겼습니다.',
+        url_for('tasks'),
+        '코멘트',
+    )
+    _audit('코멘트', 'task', task.id, item_name, content[:100])
+    db.session.commit()
+    return jsonify({'ok': True, 'comment': {
+        'id': c.id, 'author': current_user.name, 'author_role': current_user.role,
+        'content': c.content, 'created_at': c.created_at.strftime('%m/%d %H:%M') if c.created_at else '방금'
+    }})
+
+# ──────────────────────────────────────────────
+# 상품 복제
+# ──────────────────────────────────────────────
+@app.route('/items/<int:item_id>/duplicate', methods=['POST'])
+@login_required
+def duplicate_item(item_id):
+    """상품 복제 (같은 설정으로 새 상품 생성)"""
+    src = Item.query.get_or_404(item_id)
+    new_name = request.form.get('new_name', f'{src.name} (복사)').strip()
+    # 중복 이름 확인
+    if Item.query.filter_by(name=new_name).first():
+        flash(f'이미 "{new_name}" 상품이 있습니다. 다른 이름을 사용해주세요.', 'error')
+        return redirect(url_for('items'))
+    item = Item(name=new_name, line=src.line, category_id=src.category_id,
+                artist=src.artist, unit_cost=src.unit_cost, target_qty=src.target_qty,
+                current_stock=0, status='기획중', owner_id=current_user.id,
+                usage=src.usage, memo=src.memo,
+                sale_url_smartstore=src.sale_url_smartstore,
+                sale_url_aengdu=src.sale_url_aengdu,
+                sale_url_positive=src.sale_url_positive)
+    db.session.add(item)
+    db.session.flush()
+    # 체크리스트도 복제
+    for ci in ChecklistItem.query.filter_by(item_id=src.id).order_by(ChecklistItem.sort_order).all():
+        new_ci = ChecklistItem(item_id=item.id, label=ci.label, category=ci.category,
+                               sort_order=ci.sort_order, checked=False)
+        db.session.add(new_ci)
+    _audit('복제', 'item', item.id, new_name, f'원본: {src.name} (ID:{src.id})')
+    _notify_related_and_admins(item, f'{current_user.name}님이 "{src.name}"을 복제하여 "{new_name}"을 등록했습니다.', url_for('items'), '상품등록')
+    db.session.commit()
+    flash(f'"{new_name}" 상품이 복제되었습니다. (체크리스트 포함)', 'success')
+    return redirect(url_for('items'))
+
+# ──────────────────────────────────────────────
+# Audit Log 조회
+# ──────────────────────────────────────────────
+@app.route('/audit-log')
+@login_required
+def audit_log():
+    """변경 이력 조회 (최근 200건)"""
+    logs = AuditLog.query.order_by(AuditLog.created_at.desc()).limit(200).all()
+    return render_template('index.html', page='audit_log', audit_logs=logs)
 
 def get_all_roles():
     """DB에서 역할 목록을 정렬하여 반환 (이름 리스트)"""
