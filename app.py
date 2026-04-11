@@ -640,6 +640,24 @@ def revert_task(task_id):
     flash(f'"{task.stage}" → "{prev_stage}" 단계로 되돌렸습니다.', 'info')
     return jsonify({'ok': True})
 
+@app.route('/tasks/<int:task_id>/complete-delivery', methods=['POST'])
+@login_required
+def complete_delivery(task_id):
+    """입고 완료 → 태스크 완료 처리 + 상품 상태 업데이트"""
+    task = Task.query.get_or_404(task_id)
+    if task.stage != '입고':
+        return jsonify({'ok': False, 'error': '입고 태스크가 아닙니다'}), 400
+    task.status = '완료'
+    task.completed_at = datetime.utcnow()
+    # 연결된 상품 상태를 입고완료/판매중으로 변경
+    if task.item:
+        task.item.status = '판매중'
+    db.session.commit()
+    item_name = task.item.name if task.item else task.title
+    flash(f'🎉 "{item_name}" 입고 완료! 재고 수량을 확인해주세요.', 'success')
+    # 재고 관리 페이지로 리다이렉트 (item_id 파라미터 포함)
+    return jsonify({'ok': True, 'redirect': url_for('inventory'), 'item_name': item_name})
+
 @app.route('/tasks/<int:task_id>/production', methods=['POST'])
 @login_required
 def update_production(task_id):
