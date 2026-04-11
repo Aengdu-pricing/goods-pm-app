@@ -273,17 +273,24 @@ def dashboard():
     item_stage_map = []
     if has_perm('view_all_tasks'):
         STAGES = ['기획', '디자인', '컨펌/견적', '제작', '입고']
+
+        # ── 직원별 업무 통계 (1회 쿼리로 전체 태스크 가져온 뒤 파이썬에서 분배) ──
         all_users = User.query.order_by(User.role, User.name).all()
+        all_tasks_for_stats = Task.query.all()
+        user_tasks_map = {}
+        for t in all_tasks_for_stats:
+            user_tasks_map.setdefault(t.assignee_id, []).append(t)
+        cutoff_30d = datetime.utcnow() - timedelta(days=30)
         for u in all_users:
-            u_tasks = Task.query.filter_by(assignee_id=u.id).all()
-            active = [t for t in u_tasks if t.status == '진행중']
-            waiting = [t for t in u_tasks if t.status == '대기']
-            done_30d = [t for t in u_tasks if t.status == '완료' and t.completed_at and t.completed_at >= datetime.utcnow() - timedelta(days=30)]
-            overdue = [t for t in u_tasks if t.status != '완료' and t.due_date and t.due_date < today]
+            u_tasks = user_tasks_map.get(u.id, [])
+            n_active = sum(1 for t in u_tasks if t.status == '진행중')
+            n_waiting = sum(1 for t in u_tasks if t.status == '대기')
+            n_done_30d = sum(1 for t in u_tasks if t.status == '완료' and t.completed_at and t.completed_at >= cutoff_30d)
+            n_overdue = sum(1 for t in u_tasks if t.status != '완료' and t.due_date and t.due_date < today)
             staff_stats.append({
-                'user': u, 'active': len(active), 'waiting': len(waiting),
-                'done_30d': len(done_30d), 'overdue': len(overdue),
-                'total_open': len(active) + len(waiting),
+                'user': u, 'active': n_active, 'waiting': n_waiting,
+                'done_30d': n_done_30d, 'overdue': n_overdue,
+                'total_open': n_active + n_waiting,
             })
 
         # ── 지연 업무 목록 (마감일 지남 + 미완료) ──
@@ -291,10 +298,41 @@ def dashboard():
             Task.status != '완료', Task.due_date < today
         ).order_by(Task.due_date).limit(15).all()
 
-        # ── 소진 예측 vs 파이프라인 갭 경고 ──
+        # ── 소진 예측 vs 파이프라인 갭 경고 (일괄 쿼리) ──
         selling_items = Item.query.filter(Item.status.in_(['판매중', '소진중']), Item.current_stock > 0).all()
+        selling_ids = [it.id for it in selling_items]
+
+        # WeeklyCount를 한 번에 가져와서 상품별로 분배
+        all_wks = WeeklyCount.query.filter(
+            WeeklyCount.item_id.in_(selling_ids)
+        ).order_by(WeeklyCount.counted_at.desc()).all() if selling_ids else []
+        wks_by_item = {}
+        for w in all_wks:
+            lst = wks_by_item.setdefault(w.item_id, [])
+            if len(lst) < 16:  # 최근 16건만
+                lst.append(w)
+
+        # 파이프라인 카테고리 존재 여부 일괄 체크
+        selling_cat_ids = list(set(it.category_id for it in selling_items if it.category_id))
+        pipeline_cat_ids = set()
+        if selling_cat_ids:
+            rows = db.session.query(Item.category_id).filter(
+                Item.category_id.in_(selling_cat_ids),
+                Item.status.in_(['기획중', '디자인중', '제작중', '입고대기'])
+            ).distinct().all()
+            pipeline_cat_ids = set(r[0] for r in rows)
+
+        # 리뉴얼 업무 존재 여부 일괄 체크
+        renewal_item_ids = set()
+        if selling_ids:
+            rows = db.session.query(Task.item_id).filter(
+                Task.item_id.in_(selling_ids), Task.title.contains('리뉴얼'),
+                Task.status.in_(['대기', '진행중'])
+            ).distinct().all()
+            renewal_item_ids = set(r[0] for r in rows)
+
         for it in selling_items:
-            wks = WeeklyCount.query.filter_by(item_id=it.id).order_by(WeeklyCount.counted_at.desc()).limit(16).all()
+            wks = wks_by_item.get(it.id, [])
             weekly_avg = 0
             if len(wks) >= 2:
                 consume_weeks = [w for w in wks if w.diff and w.diff < 0]
@@ -303,21 +341,9 @@ def dashboard():
                 weekly_avg = round(total_consumed / num_weeks) if num_weeks > 0 else 0
             if weekly_avg > 0 and it.current_stock:
                 remaining_weeks = it.current_stock // weekly_avg
-                # 12주(약 3개월) 이내 소진 예상이면 대체품 파이프라인 확인
                 if remaining_weeks <= 12:
-                    # 같은 카테고리에 기획~제작 중인 상품이 있는지 확인
-                    pipeline_exists = False
-                    if it.category_id:
-                        pipeline_exists = Item.query.filter(
-                            Item.category_id == it.category_id,
-                            Item.id != it.id,
-                            Item.status.in_(['기획중', '디자인중', '제작중', '입고대기'])
-                        ).first() is not None
-                    # 리뉴얼 업무가 진행 중인지도 확인
-                    renewal_exists = Task.query.filter(
-                        Task.item_id == it.id, Task.title.contains('리뉴얼'),
-                        Task.status.in_(['대기', '진행중'])
-                    ).first() is not None
+                    pipeline_exists = it.category_id in pipeline_cat_ids if it.category_id else False
+                    renewal_exists = it.id in renewal_item_ids
                     if not pipeline_exists and not renewal_exists:
                         supply_gap_alerts.append({
                             'item': it, 'remaining_weeks': remaining_weeks,
@@ -325,18 +351,28 @@ def dashboard():
                             'severity': '긴급' if remaining_weeks <= 4 else '주의'
                         })
 
-        # ── 상품별 현재 단계 요약 ──
+        # ── 상품별 현재 단계 요약 (일괄 쿼리) ──
         active_items = Item.query.filter(Item.status.notin_(['소진완료', '단종'])).order_by(Item.line, Item.name).all()
+        active_item_ids = [it.id for it in active_items]
+        # 진행중 태스크를 한 번에 가져옴
+        active_tasks_list = Task.query.filter(
+            Task.item_id.in_(active_item_ids), Task.status == '진행중'
+        ).all() if active_item_ids else []
+        active_task_by_item = {}
+        for t in active_tasks_list:
+            if t.item_id not in active_task_by_item:
+                active_task_by_item[t.item_id] = t
         for it in active_items:
-            current_stage = '-'
-            assignee_name = '-'
-            # 진행중인 태스크 찾기
-            active_task = Task.query.filter_by(item_id=it.id, status='진행중').first()
-            if active_task:
-                current_stage = active_task.stage or '-'
-                assignee_name = active_task.assignee.name if active_task.assignee else '-'
+            at = active_task_by_item.get(it.id)
+            if at:
+                current_stage = at.stage or '-'
+                assignee_name = at.assignee.name if at.assignee else '-'
             elif it.status in ('판매중', '소진중'):
                 current_stage = '판매중'
+                assignee_name = '-'
+            else:
+                current_stage = '-'
+                assignee_name = '-'
             item_stage_map.append({
                 'item': it, 'stage': current_stage, 'assignee': assignee_name
             })
@@ -367,17 +403,19 @@ def tasks():
     if not assignee_filter and not has_perm('view_all_tasks') and 'assignee' not in request.args:
         assignee_filter = 'me'
 
-    all_tasks = Task.query.order_by(Task.due_date).all()
+    # 전체 태스크를 1회만 로드 (필터용 + 활성 단계 파악용 공유)
+    all_tasks_full = Task.query.order_by(Task.due_date).all()
 
     # 담당자 필터 적용
     if assignee_filter == 'me':
-        all_tasks = [t for t in all_tasks if t.assignee_id == current_user.id]
+        all_tasks = [t for t in all_tasks_full if t.assignee_id == current_user.id]
     elif assignee_filter.isdigit():
         aid = int(assignee_filter)
-        all_tasks = [t for t in all_tasks if t.assignee_id == aid]
+        all_tasks = [t for t in all_tasks_full if t.assignee_id == aid]
+    else:
+        all_tasks = list(all_tasks_full)
 
-    # 품목별로 현재 활성 단계 파악 (필터 전 전체 기준 — 숨김 로직은 전체 상태를 알아야 하므로)
-    all_tasks_full = Task.query.all()
+    # 품목별로 현재 활성 단계 파악 (전체 기준 — 숨김 로직은 전체 상태를 알아야 하므로)
     item_active_idx = {}  # item_id → int
     for t in all_tasks_full:
         if t.item_id and t.status in ('진행중', '완료') and t.stage in STAGES:
