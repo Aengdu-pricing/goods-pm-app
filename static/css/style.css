@@ -69,9 +69,9 @@ a.summary-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(74,55
 .kanban-col{background:var(--warm-bg);border-radius:10px;padding:14px;min-height:200px;min-width:0;overflow:hidden}
 .kanban-col h4{font-size:12px;letter-spacing:.3px;color:var(--text-light);margin-bottom:10px;display:flex;justify-content:space-between;font-weight:500}
 .kanban-col h4 .count{background:var(--green);color:#fff;border-radius:10px;padding:1px 8px;font-size:11px}
-.task-card{background:var(--card);border-radius:8px;padding:12px;margin-bottom:8px;border:1px solid var(--border-light);font-size:12px;cursor:pointer;transition:.15s;overflow:hidden;word-break:break-word}
-.task-card:hover{box-shadow:0 3px 10px rgba(74,55,40,.08);transform:translateY(-1px)}
-.task-card .task-title{font-weight:500;margin-bottom:6px;color:var(--brown)}
+.task-card{background:var(--card);border-radius:10px;padding:10px 12px;margin-bottom:6px;border:1px solid var(--border-light);font-size:12px;transition:.15s;overflow:hidden;word-break:break-word}
+.task-card:hover{box-shadow:0 2px 8px rgba(74,55,40,.07);border-color:var(--border)}
+.task-card .task-title{font-weight:500;margin-bottom:4px;color:var(--brown)}
 .task-card .task-meta{display:flex;justify-content:space-between;color:var(--text-light);font-size:11px}
 .priority-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
 .priority-dot.urgent{background:var(--danger)}

@@ -235,109 +235,92 @@
     <div class="kanban-col" style="border-top:3px solid var(--brown)">
       <h4>{{ stage_icons[stage_name] }} {{ stage_name }} <span class="count">{{ tasks_in_stage|length }}</span></h4>
       {% for t in tasks_in_stage %}
-      <div class="task-card" data-id="{{ t.id }}">
-        <div class="task-title">
+      <div class="task-card" data-id="{{ t.id }}" style="padding:10px 12px">
+        {# ── 헤더: 이름 + 우선순위 ── #}
+        <div style="display:flex;align-items:center;gap:6px">
           <span class="priority-dot {{ 'urgent' if t.priority=='긴급' else 'high' if t.priority=='높음' else 'normal' if t.priority=='보통' else 'low' }}"></span>
-          {{ t.item.name if t.item else t.title }}
-          {% if t.revision_count %}<span style="font-size:10px;background:#fff3e0;color:#e65100;padding:1px 5px;border-radius:3px;margin-left:4px">수정 #{{ t.revision_count }}</span>{% endif %}
+          <span style="font-weight:600;font-size:13px;flex:1;line-height:1.3">{{ t.item.name if t.item else t.title }}</span>
+          {% if t.revision_count %}<span style="font-size:9px;background:#fff3e0;color:#e65100;padding:1px 5px;border-radius:3px">수정 #{{ t.revision_count }}</span>{% endif %}
         </div>
-        <div style="font-size:10px;color:var(--text-light);margin-top:2px">
-          {{ t.assignee.name if t.assignee else '' }}
-          {% if t.due_date %} · 마감 {{ t.due_date.strftime('%m/%d') }}{% endif %}
-        </div>
-        <div style="margin-top:3px"><span style="font-size:10px;padding:2px 6px;border-radius:3px;background:{{ 'var(--green-pale)' if t.status=='진행중' else '#f5f5f5' }};color:{{ 'var(--green-dark)' if t.status=='진행중' else '#999' }}">{{ t.status }}</span></div>
 
-        {# ── 제작 단계: 제작 기간/시작일/진행률 ── #}
+        {# ── 메타 정보 한 줄 ── #}
+        <div style="font-size:10.5px;color:var(--text-light);margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          {% if t.assignee %}<span>{{ t.assignee.name }}</span>{% endif %}
+          {% if t.due_date %}<span>· {{ t.due_date.strftime('%m/%d') }}</span>{% endif %}
+          <span style="margin-left:auto;padding:1px 6px;border-radius:3px;font-size:10px;background:{{ 'var(--green-pale)' if t.status=='진행중' else '#f5f5f5' }};color:{{ 'var(--green-dark)' if t.status=='진행중' else '#aaa' }}">{{ t.status }}</span>
+        </div>
+
+        {# ── 제작 진행률 (간결하게) ── #}
         {% if stage_name == '제작' and t.status == '진행중' %}
-        <div style="margin-top:6px;padding:8px;background:var(--warm-bg);border-radius:6px;font-size:11px">
-          <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px">
-            <span style="font-weight:600;color:var(--brown)">제작 기간</span>
-            <select onchange="updateProduction({{ t.id }}, 'weeks', this.value)" style="font-size:10px;padding:1px 4px;border:1px solid var(--border);border-radius:3px">
-              <option value="">선택</option>
-              {% for w in range(1,9) %}
-              <option value="{{ w }}" {{ 'selected' if t.production_weeks == w else '' }}>{{ w }}주</option>
-              {% endfor %}
-            </select>
-          </div>
-          {% if t.production_start and t.production_weeks %}
+        {% if t.production_start and t.production_weeks %}
           {% set elapsed_days = (today - t.production_start).days %}
           {% set total_days = t.production_weeks * 7 %}
           {% set pct = [(elapsed_days / total_days * 100)|round|int, 100]|min %}
-          {% set weeks_done = (elapsed_days / 7)|round(1) %}
-          <div style="margin-top:4px">
+          <div style="margin-top:6px">
             <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-mid);margin-bottom:2px">
-              <span>{{ weeks_done }}주 / {{ t.production_weeks }}주</span>
-              <span>{{ pct }}%</span>
+              <span>{{ (elapsed_days / 7)|round(1) }}주 / {{ t.production_weeks }}주</span>
+              <span style="{{ 'color:var(--danger);font-weight:600' if pct >= 100 else '' }}">{{ pct }}%</span>
             </div>
-            <div style="height:6px;background:#e0e0e0;border-radius:3px;overflow:hidden">
-              <div style="height:100%;width:{{ pct }}%;background:{{ 'var(--green)' if pct < 80 else 'var(--warn)' if pct < 100 else 'var(--danger)' }};border-radius:3px;transition:.3s"></div>
+            <div style="height:5px;background:#eee;border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:{{ pct }}%;background:{{ 'var(--green)' if pct < 80 else 'var(--warn)' if pct < 100 else 'var(--danger)' }};border-radius:3px"></div>
             </div>
-            {% if pct >= 100 %}<div style="font-size:10px;color:var(--danger);margin-top:2px;font-weight:600">⚠ 예상 기간 초과</div>{% endif %}
           </div>
-          {% elif not t.production_start %}
-          <div style="margin-top:4px">
-            <label style="font-size:10px;color:var(--text-mid)">시작일</label>
-            <input type="date" onchange="updateProduction({{ t.id }}, 'start', this.value)" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;width:100%">
+        {% else %}
+          <div style="margin-top:4px;font-size:10px;color:var(--text-light);cursor:pointer" onclick="this.nextElementSibling.style.display='flex';this.style.display='none'">⏱ 제작 기간 설정 →</div>
+          <div style="display:none;margin-top:4px;gap:4px;align-items:center;font-size:10px">
+            <select onchange="updateProduction({{ t.id }}, 'weeks', this.value)" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px">
+              <option value="">기간</option>{% for w in range(1,9) %}<option value="{{ w }}" {{ 'selected' if t.production_weeks == w else '' }}>{{ w }}주</option>{% endfor %}
+            </select>
+            <input type="date" onchange="updateProduction({{ t.id }}, 'start', this.value)" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;flex:1" placeholder="시작일">
           </div>
+        {% endif %}
+        {% endif %}
+
+        {# ── 컨펌/견적: 승인/수정 ── #}
+        {% if stage_name == '컨펌/견적' and t.status == '진행중' %}
+        <div style="margin-top:6px;display:flex;gap:4px">
+          <button onclick="sampleAction({{ t.id }},'approve')" style="flex:1;padding:4px 0;font-size:11px;background:var(--green);color:#fff;border:none;border-radius:4px;cursor:pointer">✓ 승인</button>
+          <button onclick="sampleAction({{ t.id }},'revise')" style="flex:1;padding:4px 0;font-size:11px;background:#fff3e0;color:#e65100;border:none;border-radius:4px;cursor:pointer">↩ 수정</button>
+          <button onclick="sampleAction({{ t.id }},'skip')" style="padding:4px 8px;font-size:11px;background:#f5f5f5;color:#888;border:none;border-radius:4px;cursor:pointer">건너뛰기</button>
+        </div>
+        {% endif %}
+
+        {# ── 첨부 (아이콘 + 접기) ── #}
+        {% if t.attachments or t.status == '진행중' %}
+        <div style="margin-top:6px;border-top:1px solid var(--border-light);padding-top:5px">
+          {% if t.attachments %}
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            {% for a in t.attachments %}<a href="{{ url_for('download_file', filename=a.filename) }}" style="font-size:10px;color:var(--green);text-decoration:none;background:var(--green-pale);padding:1px 6px;border-radius:3px" title="{{ a.original_name }}">📎 {{ a.original_name[:15] }}{% if a.original_name|length > 15 %}…{% endif %}</a>{% endfor %}
+          </div>
+          {% endif %}
+          {% if t.status == '진행중' %}
+          <form method="POST" action="{{ url_for('upload_file') }}" enctype="multipart/form-data" style="margin-top:4px;display:flex;gap:4px;align-items:center">
+            <input type="hidden" name="task_id" value="{{ t.id }}">
+            <input type="hidden" name="item_id" value="{{ t.item_id or '' }}">
+            <select name="file_type" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px">
+              <option value="디자인시안">시안</option><option value="견적서">견적서</option><option value="샘플사진">샘플</option><option value="감리보고서">감리</option><option value="기타">기타</option>
+            </select>
+            <input type="file" name="file" required style="font-size:9px;flex:1;min-width:0">
+            <button type="submit" style="font-size:10px;padding:2px 8px;background:var(--green);color:#fff;border:none;border-radius:3px;cursor:pointer;white-space:nowrap">↑</button>
+          </form>
           {% endif %}
         </div>
         {% endif %}
 
-        {# ── 컨펌/견적: 승인/수정/건너뛰기 ── #}
-        {% if stage_name == '컨펌/견적' and t.status == '진행중' %}
-        <div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap">
-          <button onclick="sampleAction({{ t.id }},'approve')" style="padding:3px 10px;font-size:11px;background:var(--green);color:#fff;border:none;border-radius:4px;cursor:pointer">✓ 승인</button>
-          <button onclick="sampleAction({{ t.id }},'revise')" style="padding:3px 10px;font-size:11px;background:#fff3e0;color:#e65100;border:none;border-radius:4px;cursor:pointer">↩ 수정요청</button>
-          <button onclick="sampleAction({{ t.id }},'skip')" style="padding:3px 10px;font-size:11px;background:#f5f5f5;color:#666;border:none;border-radius:4px;cursor:pointer">건너뛰기</button>
-        </div>
-        {% endif %}
-
-        {# ── 첨부파일 목록 ── #}
-        {% if t.attachments %}
-        <div style="margin-top:4px">{% for a in t.attachments %}<a href="{{ url_for('download_file', filename=a.filename) }}" style="font-size:10px;color:var(--green);text-decoration:none" title="{{ a.original_name }}">📎 {{ a.original_name[:20] }}</a> {% endfor %}</div>
-        {% endif %}
-
-        {# ── 파일 첨부 (진행중인 카드에서만) ── #}
-        {% if t.status == '진행중' %}
-        <form method="POST" action="{{ url_for('upload_file') }}" enctype="multipart/form-data" style="margin-top:4px">
-          <input type="hidden" name="task_id" value="{{ t.id }}">
-          <input type="hidden" name="item_id" value="{{ t.item_id or '' }}">
-          <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
-            <select name="file_type" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;flex-shrink:0">
-              <option value="디자인시안">시안</option><option value="견적서">견적서</option><option value="샘플사진">샘플사진</option><option value="감리보고서">감리</option><option value="기타">기타</option>
-            </select>
-            <button type="submit" style="font-size:10px;padding:2px 6px;background:var(--green);color:#fff;border:none;border-radius:3px;cursor:pointer;flex-shrink:0">↑ 첨부</button>
-          </div>
-          <input type="file" name="file" required style="font-size:9px;width:100%;margin-top:3px;max-width:100%;box-sizing:border-box">
-        </form>
-        {% endif %}
-
-        {# ── 독립 업무 안내 태그 (상품 미연결) ── #}
-        {% if not t.item %}
-        <div style="margin-top:4px;padding:3px 8px;background:#fff8e1;border-radius:4px;font-size:10px;color:#b38600;display:flex;align-items:center;gap:4px">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b38600" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          독립 업무 — 상품 미연결
-        </div>
-        {% endif %}
-
-        {# ── 단계 이동 버튼 ── #}
-        <div style="margin-top:6px;display:flex;gap:4px">
+        {# ── 하단 액션 버튼 ── #}
+        <div style="margin-top:8px;display:flex;gap:4px">
           {% if t.status == '대기' %}
-          <button onclick="updateTaskStatus({{ t.id }},'진행중')" style="flex:1;padding:3px 0;font-size:11px;background:var(--green);color:#fff;border:none;border-radius:4px;cursor:pointer">시작하기</button>
+          <button onclick="updateTaskStatus({{ t.id }},'진행중')" style="flex:1;padding:5px 0;font-size:11px;background:var(--green);color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:500">▶ 시작</button>
           {% elif t.status == '진행중' and stage_name != '컨펌/견적' %}
             {% if t.item %}
-            <button onclick="showAdvanceModal({{ t.id }}, '{{ t.stage }}')" style="flex:1;padding:3px 0;font-size:11px;background:var(--brown);color:#fff;border:none;border-radius:4px;cursor:pointer">완료 → 다음단계</button>
+            <button onclick="showAdvanceModal({{ t.id }}, '{{ t.stage }}')" style="flex:1;padding:5px 0;font-size:11px;background:var(--brown);color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:500">다음 단계 →</button>
             {% else %}
-            <button onclick="completeStandaloneTask({{ t.id }})" style="flex:1;padding:3px 0;font-size:11px;background:var(--brown);color:#fff;border:none;border-radius:4px;cursor:pointer">✓ 완료</button>
+            <button onclick="completeStandaloneTask({{ t.id }})" style="flex:1;padding:5px 0;font-size:11px;background:var(--brown);color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:500">✓ 완료</button>
             {% endif %}
           {% endif %}
-          {% if not t.item %}
-          {# 독립 업무만 수동 상태 이동 허용 #}
-          <select onchange="updateTaskStatus({{ t.id }}, this.value)" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;color:var(--text-light)">
-            <option value="">이동</option>
-            <option value="대기">대기</option>
-            <option value="진행중">진행중</option>
-            <option value="완료">완료</option>
+          {% if not t.item and t.status != '대기' %}
+          <select onchange="updateTaskStatus({{ t.id }}, this.value)" style="font-size:10px;padding:3px 4px;border:1px solid var(--border);border-radius:4px;color:var(--text-light)">
+            <option value="">이동</option><option value="대기">대기</option><option value="진행중">진행중</option><option value="완료">완료</option>
           </select>
           {% endif %}
         </div>
