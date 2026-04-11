@@ -557,7 +557,9 @@ def create_item():
         d_sample = int(request.form.get('days_sample') or 7)
         d_prod = int(request.form.get('days_prod') or 30)
         d_stock = int(request.form.get('days_stock') or 1)
-        auto_generate_tasks(item, owner_id, d_plan, d_design, d_sample, d_prod, d_stock)
+        was_clamped = auto_generate_tasks(item, owner_id, d_plan, d_design, d_sample, d_prod, d_stock)
+        if was_clamped:
+            flash('⚠️ 입고일까지 시간이 부족하여 일부 단계 날짜가 오늘 기준으로 보정되었습니다. 업무 관리에서 일정을 확인해주세요.', 'warning')
 
     # 퀄리티 체크리스트 자동 생성 (카테고리 기반)
     checklist_count = _create_checklist_for_item(item)
@@ -608,6 +610,11 @@ def auto_generate_tasks(item, owner_id, days_plan=30, days_design=21, days_sampl
     def clamp(d):
         return max(d, today)
 
+    # 보정 여부 감지
+    clamped_stages = []
+    raw_dates = [plan_start, plan_end, design_start, design_end, sample_start, sample_end, prod_start, prod_end]
+    has_clamped = any(d < today for d in raw_dates)
+
     stages = [
         (f'{item.name} 기획', '기획', clamp(plan_start), clamp(plan_end), owner_id, '높음'),
         (f'{item.name} 디자인', '디자인', clamp(design_start), clamp(design_end), designer.id if designer else owner_id, '보통'),
@@ -622,6 +629,8 @@ def auto_generate_tasks(item, owner_id, days_plan=30, days_design=21, days_sampl
         t = Task(title=title, item_id=item.id, stage=stage, status='대기',
                  start_date=start, due_date=due, assignee_id=assignee, priority=priority)
         db.session.add(t)
+
+    return has_clamped  # True면 과거 날짜가 오늘로 보정됨
 
 @app.route('/items/<int:item_id>/status', methods=['POST'])
 @login_required
@@ -1056,6 +1065,9 @@ def create_renewal(item_id):
     def clamp(d):
         return max(d, today)
 
+    raw_dates = [design_start, design_end, sample_start, sample_end, prod_start, prod_end]
+    has_clamped = any(d < today for d in raw_dates)
+
     label = f'리뉴얼' + (f' ({memo})' if memo else '')
     stages = [
         (f'{item.name} {label} 디자인', '디자인', clamp(design_start), clamp(design_end),
@@ -1091,6 +1103,8 @@ def create_renewal(item_id):
     )
     db.session.commit()
     flash(f'"{item.name}" 리뉴얼 업무 4건 생성! (디자인→컨펌/견적→제작→입고)', 'success')
+    if has_clamped:
+        flash('⚠️ 입고일까지 시간이 부족하여 일부 단계 날짜가 오늘 기준으로 보정되었습니다.', 'warning')
     return redirect(url_for('tasks'))
 
 @app.route('/items/<int:item_id>/reorder', methods=['POST'])
