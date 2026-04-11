@@ -371,6 +371,32 @@
   </div>
   {% endif %}
 
+  <!-- Advance Stage Modal (담당자 선택) -->
+  <div class="modal-overlay" id="advanceModal">
+    <div class="modal" style="max-width:400px">
+      <div class="modal-header">
+        <h3>➡️ 다음 단계 담당자 지정</h3>
+        <button class="modal-close" onclick="document.getElementById('advanceModal').classList.remove('show')">×</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="advTaskId">
+        <p style="font-size:13px;margin-bottom:12px"><strong id="advNextStageLabel"></strong> 단계를 담당할 팀원을 선택하세요.</p>
+        <div class="form-group">
+          <label>담당자 <span class="req">*</span></label>
+          <select id="advAssignee" style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;width:100%">
+            {% for u in users %}
+            <option value="{{ u.id }}">{{ u.name }} ({{ u.role }})</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-outline" onclick="document.getElementById('advanceModal').classList.remove('show')">취소</button>
+        <button type="button" class="btn-primary" onclick="confirmAdvance()">확인 → 다음 단계로</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══ ITEMS ═══ -->
   {% elif page == 'items' %}
   <div class="card" style="padding:14px 22px;display:flex;justify-content:space-between;align-items:center">
@@ -452,32 +478,6 @@
 
   <div style="margin-top:16px">
     <a href="https://grim-timi-positivethinking-72254524.koyeb.app/" target="_blank" class="btn-pricing">🔗 앵두 가격 추천 로봇에서 판매가 계산하기 →</a>
-  </div>
-
-  <!-- Advance Stage Modal (담당자 선택) -->
-  <div class="modal-overlay" id="advanceModal">
-    <div class="modal" style="max-width:400px">
-      <div class="modal-header">
-        <h3>➡️ 다음 단계 담당자 지정</h3>
-        <button class="modal-close" onclick="document.getElementById('advanceModal').classList.remove('show')">×</button>
-      </div>
-      <div class="modal-body">
-        <input type="hidden" id="advTaskId">
-        <p style="font-size:13px;margin-bottom:12px"><strong id="advNextStageLabel"></strong> 단계를 담당할 팀원을 선택하세요.</p>
-        <div class="form-group">
-          <label>담당자 <span class="req">*</span></label>
-          <select id="advAssignee" style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;width:100%">
-            {% for u in users %}
-            <option value="{{ u.id }}">{{ u.name }} ({{ u.role }})</option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn-outline" onclick="document.getElementById('advanceModal').classList.remove('show')">취소</button>
-        <button type="button" class="btn-primary" onclick="confirmAdvance()">확인 → 다음 단계로</button>
-      </div>
-    </div>
   </div>
 
   <!-- Item Registration Modal -->
