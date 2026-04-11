@@ -413,10 +413,21 @@ def tasks():
             stage_tasks[t.stage].append(t)
         # 그 외 미래 단계 대기 → 숨김
 
+    # 상품 단위 코멘트 수 계산 (item_id → 전체 코멘트 수)
+    from sqlalchemy import func as sa_func
+    item_comment_counts = {}
+    rows = db.session.query(Task.item_id, sa_func.count(Comment.id))\
+        .join(Comment, Comment.task_id == Task.id)\
+        .filter(Task.item_id.isnot(None))\
+        .group_by(Task.item_id).all()
+    for item_id, cnt in rows:
+        item_comment_counts[item_id] = cnt
+
     users = User.query.order_by(User.role, User.name).all()
     return render_template('index.html', page='tasks',
                            stage_tasks=stage_tasks, done_tasks=done_tasks, STAGES=STAGES,
-                           today=date.today(), users=users, assignee_filter=assignee_filter)
+                           today=date.today(), users=users, assignee_filter=assignee_filter,
+                           item_comment_counts=item_comment_counts)
 
 @app.route('/items')
 @login_required
@@ -2412,12 +2423,20 @@ def _audit(action, target_type, target_id, target_name, detail=''):
 @app.route('/tasks/<int:task_id>/comments', methods=['GET'])
 @login_required
 def get_comments(task_id):
-    """업무의 코멘트 목록 조회"""
+    """업무의 코멘트 목록 조회 — 같은 상품의 전체 단계 코멘트를 반환"""
     task = Task.query.get_or_404(task_id)
-    comments = Comment.query.filter_by(task_id=task_id).order_by(Comment.created_at.asc()).all()
+    if task.item_id:
+        # 같은 상품에 연결된 모든 태스크의 코멘트를 가져옴
+        sibling_task_ids = [t.id for t in Task.query.filter_by(item_id=task.item_id).all()]
+        comments = Comment.query.filter(Comment.task_id.in_(sibling_task_ids)).order_by(Comment.created_at.asc()).all()
+    else:
+        comments = Comment.query.filter_by(task_id=task_id).order_by(Comment.created_at.asc()).all()
+    # 태스크 id → stage 매핑
+    task_stage_map = {t.id: t.stage for t in Task.query.filter(Task.id.in_([c.task_id for c in comments])).all()}
     return jsonify({'ok': True, 'comments': [
         {'id': c.id, 'author': c.author.name if c.author else '?', 'author_role': c.author.role if c.author else '',
-         'content': c.content, 'created_at': c.created_at.strftime('%m/%d %H:%M') if c.created_at else ''}
+         'content': c.content, 'created_at': c.created_at.strftime('%m/%d %H:%M') if c.created_at else '',
+         'stage': task_stage_map.get(c.task_id, '')}
         for c in comments
     ]})
 
@@ -2443,7 +2462,8 @@ def add_comment(task_id):
     db.session.commit()
     return jsonify({'ok': True, 'comment': {
         'id': c.id, 'author': current_user.name, 'author_role': current_user.role,
-        'content': c.content, 'created_at': c.created_at.strftime('%m/%d %H:%M') if c.created_at else '방금'
+        'content': c.content, 'created_at': c.created_at.strftime('%m/%d %H:%M') if c.created_at else '방금',
+        'stage': task.stage or ''
     }})
 
 # ──────────────────────────────────────────────

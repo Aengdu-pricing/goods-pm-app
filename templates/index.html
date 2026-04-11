@@ -510,20 +510,15 @@
         </div>
         {% endif %}
 
-        {# ── 코멘트 ── #}
+        {# ── 코멘트 (상품 단위 — 전 단계 코멘트 통합 표시) ── #}
+        {% set item_cc = item_comment_counts.get(t.item_id, 0) if t.item_id else t.comments|length %}
         <div style="margin-top:6px">
           <button onclick="toggleComments({{ t.id }})" style="font-size:10px;background:none;border:none;color:var(--brown);cursor:pointer;padding:0">
-            💬 코멘트 {% if t.comments|length > 0 %}<span style="background:var(--brown);color:#fff;border-radius:10px;padding:0 5px;font-size:9px;margin-left:2px">{{ t.comments|length }}</span>{% endif %}
+            💬 코멘트 {% if item_cc > 0 %}<span style="background:var(--brown);color:#fff;border-radius:10px;padding:0 5px;font-size:9px;margin-left:2px">{{ item_cc }}</span>{% endif %}
           </button>
-          <div id="comments-{{ t.id }}" style="display:none;margin-top:4px;font-size:11px;max-height:150px;overflow-y:auto">
-            <div id="comment-list-{{ t.id }}">
-              {% for c in t.comments %}
-              <div style="background:#fafafa;border-radius:4px;padding:4px 6px;margin-bottom:3px">
-                <span style="font-weight:600;color:var(--brown)">{{ c.author.name if c.author else '?' }}</span>
-                <span style="color:#aaa;font-size:9px;margin-left:4px">{{ c.created_at.strftime('%m/%d %H:%M') if c.created_at else '' }}</span>
-                <div style="margin-top:1px">{{ c.content }}</div>
-              </div>
-              {% endfor %}
+          <div id="comments-{{ t.id }}" style="display:none;margin-top:4px;font-size:11px;max-height:200px;overflow-y:auto">
+            <div id="comment-list-{{ t.id }}" data-loaded="0">
+              <div style="color:#aaa;font-size:10px;padding:4px">불러오는 중...</div>
             </div>
             <form onsubmit="return addComment(event, {{ t.id }})" style="display:flex;gap:3px;margin-top:4px">
               <input type="text" id="comment-input-{{ t.id }}" placeholder="코멘트 입력..." style="flex:1;padding:4px 6px;font-size:11px;border:1px solid #ddd;border-radius:4px">
@@ -2546,9 +2541,41 @@ function editCheckItem(checkId, btn) {
   input.onkeydown = function(e) { if(e.key==='Enter') { e.preventDefault(); save(); } if(e.key==='Escape') { input.replaceWith(labelSpan); } };
 }
 
+var STAGE_COLORS = {'기획':'#5C6BC0','디자인':'#AB47BC','컨펌/견적':'#FF7043','제작':'#26A69A','입고':'#66BB6A'};
+
+function renderComment(c) {
+  var stageTag = '';
+  if (c.stage) {
+    var sc = STAGE_COLORS[c.stage] || '#888';
+    stageTag = '<span style="background:' + sc + ';color:#fff;font-size:8px;padding:0 4px;border-radius:3px;margin-right:4px">' + c.stage + '</span>';
+  }
+  return '<div style="background:#fafafa;border-radius:4px;padding:4px 6px;margin-bottom:3px">' +
+    stageTag +
+    '<span style="font-weight:600;color:var(--brown)">' + c.author + '</span>' +
+    '<span style="color:#aaa;font-size:9px;margin-left:4px">' + c.created_at + '</span>' +
+    '<div style="margin-top:1px">' + c.content + '</div></div>';
+}
+
 function toggleComments(taskId) {
   var el = document.getElementById('comments-' + taskId);
-  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  var isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) {
+    var list = document.getElementById('comment-list-' + taskId);
+    if (list.dataset.loaded === '0') {
+      fetch('/tasks/' + taskId + '/comments').then(function(r){ return r.json(); }).then(function(d) {
+        if (d.ok) {
+          list.innerHTML = '';
+          if (d.comments.length === 0) {
+            list.innerHTML = '<div style="color:#aaa;font-size:10px;padding:4px">코멘트가 없습니다</div>';
+          } else {
+            d.comments.forEach(function(c) { list.innerHTML += renderComment(c); });
+          }
+          list.dataset.loaded = '1';
+        }
+      });
+    }
+  }
 }
 
 function addComment(e, taskId) {
@@ -2561,12 +2588,9 @@ function addComment(e, taskId) {
     .then(function(r){ return r.json(); }).then(function(d) {
       if(d.ok) {
         var list = document.getElementById('comment-list-' + taskId);
-        var div = document.createElement('div');
-        div.style.cssText = 'background:#fafafa;border-radius:4px;padding:4px 6px;margin-bottom:3px';
-        div.innerHTML = '<span style="font-weight:600;color:var(--brown)">' + d.comment.author + '</span>' +
-          '<span style="color:#aaa;font-size:9px;margin-left:4px">' + d.comment.created_at + '</span>' +
-          '<div style="margin-top:1px">' + d.comment.content + '</div>';
-        list.appendChild(div);
+        // 빈 상태 메시지 제거
+        if (list.querySelector('[style*="color:#aaa"]') && list.children.length === 1) list.innerHTML = '';
+        list.innerHTML += renderComment(d.comment);
         input.value = '';
       }
     });
