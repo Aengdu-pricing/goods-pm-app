@@ -301,9 +301,10 @@ def tasks():
             stage_tasks[t.stage].append(t)
         # 그 외 미래 단계 대기 → 숨김
 
+    users = User.query.order_by(User.role, User.name).all()
     return render_template('index.html', page='tasks',
                            stage_tasks=stage_tasks, done_tasks=done_tasks, STAGES=STAGES,
-                           today=date.today())
+                           today=date.today(), users=users)
 
 @app.route('/items')
 @login_required
@@ -608,6 +609,30 @@ def advance_task(task_id):
         flash(f'"{task.stage}" 완료 → 다음 단계로 이동{who}', 'success')
     return jsonify({'ok': True})
 
+@app.route('/tasks/<int:task_id>/revert', methods=['POST'])
+@login_required
+def revert_task(task_id):
+    """현재 단계를 이전 단계로 되돌리기"""
+    task = Task.query.get_or_404(task_id)
+    STAGES = ['기획', '디자인', '컨펌/견적', '제작', '입고']
+    if not task.item_id or task.stage not in STAGES:
+        return jsonify({'ok': False, 'error': '이전 단계가 없습니다.'})
+    current_idx = STAGES.index(task.stage)
+    if current_idx == 0:
+        return jsonify({'ok': False, 'error': '기획 단계에서는 더 이전으로 갈 수 없습니다.'})
+    prev_stage = STAGES[current_idx - 1]
+    # 현재 태스크를 대기로 되돌림
+    task.status = '대기'
+    task.completed_at = None
+    # 이전 단계 태스크를 다시 진행중으로
+    prev_task = Task.query.filter_by(item_id=task.item_id, stage=prev_stage).first()
+    if prev_task:
+        prev_task.status = '진행중'
+        prev_task.completed_at = None
+    db.session.commit()
+    flash(f'"{task.stage}" → "{prev_stage}" 단계로 되돌렸습니다.', 'info')
+    return jsonify({'ok': True})
+
 @app.route('/tasks/<int:task_id>/production', methods=['POST'])
 @login_required
 def update_production(task_id):
@@ -779,6 +804,8 @@ def delete_attachment(att_id):
     db.session.delete(att)
     db.session.commit()
     flash('파일이 삭제되었습니다.', 'success')
+    if request.headers.get('Content-Type') == 'application/x-www-form-urlencoded' or request.is_json:
+        return jsonify({'ok': True})
     return redirect(request.referrer or url_for('tasks'))
 
 def _build_month_data(year, month, today):
