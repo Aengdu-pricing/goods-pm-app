@@ -385,7 +385,12 @@ def create_item():
 
     # 업무 자동 생성: 신규든 기존이든 입고일이 있으면 생성
     if target_date:
-        auto_generate_tasks(item, owner_id)
+        d_plan = int(request.form.get('days_plan') or 30)
+        d_design = int(request.form.get('days_design') or 21)
+        d_sample = int(request.form.get('days_sample') or 7)
+        d_prod = int(request.form.get('days_prod') or 30)
+        d_stock = int(request.form.get('days_stock') or 1)
+        auto_generate_tasks(item, owner_id, d_plan, d_design, d_sample, d_prod, d_stock)
 
     # 퀄리티 체크리스트 자동 생성 (카테고리 기반)
     checklist_count = _create_checklist_for_item(item)
@@ -410,30 +415,40 @@ def create_item():
         flash(msg, 'success')
     return redirect(url_for('items'))
 
-def auto_generate_tasks(item, owner_id):
-    """목표 입고일 기준 역산하여 5단계 업무 자동 생성 (기획→디자인→컨펌/견적→제작발주→입고)"""
+def auto_generate_tasks(item, owner_id, days_plan=30, days_design=21, days_sample=7, days_prod=30, days_stock=1):
+    """목표 입고일 기준 역산하여 5단계 업무 자동 생성 (기획→디자인→컨펌/견적→제작발주→입고)
+    소요일수는 폼에서 받아 유연하게 조정 가능. 과거 날짜는 오늘로 보정."""
     target = item.target_date
+    today = date.today()
     designer = User.query.filter_by(role='디자이너').first()
     admin_mgr = User.query.filter_by(role='행정팀장').first()
 
+    # 역산
     stock_date = target
-    prod_end = target - timedelta(days=20)
-    prod_start = prod_end - timedelta(days=30)
+    prod_end = target - timedelta(days=days_stock)
+    prod_start = prod_end - timedelta(days=days_prod - 1)
     sample_end = prod_start - timedelta(days=1)
-    sample_start = sample_end - timedelta(days=6)  # 샘플 확인 7일
+    sample_start = sample_end - timedelta(days=days_sample - 1)
     design_end = sample_start - timedelta(days=1)
-    design_start = design_end - timedelta(days=20)
+    design_start = design_end - timedelta(days=days_design - 1)
     plan_end = design_start - timedelta(days=1)
-    plan_start = plan_end - timedelta(days=29)
+    plan_start = plan_end - timedelta(days=days_plan - 1)
+
+    # 과거 날짜 보정: 오늘 이전이면 오늘로
+    def clamp(d):
+        return max(d, today)
 
     stages = [
-        (f'{item.name} 기획', '기획', plan_start, plan_end, owner_id, '높음'),
-        (f'{item.name} 디자인', '디자인', design_start, design_end, designer.id if designer else owner_id, '보통'),
-        (f'{item.name} 컨펌/견적', '컨펌/견적', sample_start, sample_end, owner_id, '보통'),
-        (f'{item.name} 제작발주', '제작', prod_start, prod_end, owner_id, '보통'),
+        (f'{item.name} 기획', '기획', clamp(plan_start), clamp(plan_end), owner_id, '높음'),
+        (f'{item.name} 디자인', '디자인', clamp(design_start), clamp(design_end), designer.id if designer else owner_id, '보통'),
+        (f'{item.name} 컨펌/견적', '컨펌/견적', clamp(sample_start), clamp(sample_end), owner_id, '보통'),
+        (f'{item.name} 제작발주', '제작', clamp(prod_start), clamp(prod_end), owner_id, '보통'),
         (f'{item.name} 입고확인', '입고', stock_date, stock_date, admin_mgr.id if admin_mgr else owner_id, '보통'),
     ]
     for title, stage, start, due, assignee, priority in stages:
+        # start가 due보다 뒤면 같은 날로
+        if start > due:
+            start = due
         t = Task(title=title, item_id=item.id, stage=stage, status='대기',
                  start_date=start, due_date=due, assignee_id=assignee, priority=priority)
         db.session.add(t)
@@ -805,33 +820,46 @@ def create_renewal(item_id):
     target_date_str = request.form.get('target_date', '')
     target = date.fromisoformat(target_date_str) if target_date_str else (item.target_date or date.today() + timedelta(days=90))
 
+    # 폼에서 소요일수 받기
+    days_design = int(request.form.get('days_design') or 21)
+    days_sample = int(request.form.get('days_sample') or 7)
+    days_prod = int(request.form.get('days_prod') or 30)
+    days_stock = int(request.form.get('days_stock') or 1)
+
     # 입고일 업데이트
     item.target_date = target
+    today = date.today()
 
-    # 역산: 입고 ← 제작(30일) ← 컨펌/견적(7일) ← 디자인(21일)
+    # 역산 (커스텀 소요일수 적용)
     designer = User.query.filter_by(role='디자이너').first()
     admin_mgr = User.query.filter_by(role='행정팀장').first()
 
     stock_date = target
-    prod_end = target - timedelta(days=20)
-    prod_start = prod_end - timedelta(days=30)
+    prod_end = target - timedelta(days=days_stock)
+    prod_start = prod_end - timedelta(days=days_prod - 1)
     sample_end = prod_start - timedelta(days=1)
-    sample_start = sample_end - timedelta(days=6)
+    sample_start = sample_end - timedelta(days=days_sample - 1)
     design_end = sample_start - timedelta(days=1)
-    design_start = design_end - timedelta(days=20)
+    design_start = design_end - timedelta(days=days_design - 1)
+
+    # 과거 날짜 보정
+    def clamp(d):
+        return max(d, today)
 
     label = f'리뉴얼' + (f' ({memo})' if memo else '')
     stages = [
-        (f'{item.name} {label} 디자인', '디자인', design_start, design_end,
+        (f'{item.name} {label} 디자인', '디자인', clamp(design_start), clamp(design_end),
          designer.id if designer else current_user.id, '높음'),
-        (f'{item.name} {label} 컨펌/견적', '컨펌/견적', sample_start, sample_end,
+        (f'{item.name} {label} 컨펌/견적', '컨펌/견적', clamp(sample_start), clamp(sample_end),
          item.owner_id or current_user.id, '보통'),
-        (f'{item.name} {label} 제작발주', '제작', prod_start, prod_end,
+        (f'{item.name} {label} 제작발주', '제작', clamp(prod_start), clamp(prod_end),
          item.owner_id or current_user.id, '보통'),
         (f'{item.name} {label} 입고확인', '입고', stock_date, stock_date,
          admin_mgr.id if admin_mgr else current_user.id, '보통'),
     ]
     for title, stage, start, due, assignee, priority in stages:
+        if start > due:
+            start = due
         t = Task(title=title, item_id=item.id, stage=stage, status='대기',
                  start_date=start, due_date=due, assignee_id=assignee, priority=priority)
         db.session.add(t)
