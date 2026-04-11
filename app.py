@@ -1502,13 +1502,13 @@ def set_claude_key():
         lines.append(f'ANTHROPIC_API_KEY={key}\n')
         with open(env_path, 'w') as f:
             f.writelines(lines)
-        flash('Claude API 키가 저장되었습니다!', 'success')
+        flash('분석 엔진 키가 저장되었습니다!', 'success')
     return redirect(url_for('ai_check'))
 
 @app.route('/ai-check/analyze', methods=['POST'])
 @login_required
 def ai_analyze():
-    """Claude AI 타당성 분석 + 체크리스트 자동 생성"""
+    """제작 타당성 분석 + 체크리스트 자동 생성"""
     import urllib.request, urllib.error
 
     item_name = request.form.get('item_name', '')
@@ -1608,9 +1608,9 @@ def ai_analyze():
 
         except urllib.error.HTTPError as e:
             error_body = e.read().decode('utf-8') if e.fp else ''
-            ai_analysis = {'error': f'Claude API 오류 ({e.code}): {error_body[:200]}'}
+            ai_analysis = {'error': f'분석 엔진 오류 ({e.code}): {error_body[:200]}'}
         except Exception as e:
-            ai_analysis = {'error': f'AI 분석 중 오류: {str(e)}'}
+            ai_analysis = {'error': f'분석 중 오류: {str(e)}'}
 
     # 체크리스트는 항상 룰 기반 (카테고리별 내장 데이터)
     checklists = {
@@ -1641,7 +1641,7 @@ def ai_analyze():
             except ValueError:
                 pass
         ai_analysis = {
-            'feasibility': f'{item_name} — 룰 기반 분석입니다. AI 분석을 원하시면 ANTHROPIC_API_KEY를 설정해주세요.',
+            'feasibility': f'{item_name} — 기본 분석입니다. 고급 분석을 사용하려면 분석 엔진 키를 설정해주세요.',
             'cost_analysis': cost_note or '단가 정보 미입력',
             'margin': margin_note,
             'lead_time': lead_times.get(item_category, '약 4~8주'),
