@@ -1180,11 +1180,11 @@ def upload_file():
         noti_msg = f'{current_user.name}님이 "{context_name}"에 파일을 첨부했습니다: {orig_name}'
         noti_link = url_for('tasks')
         if task_obj:
-            _notify_task_related(task_obj, noti_msg, noti_link, '파일첨부', attachment_id=att.id)
+            _notify_task_related(task_obj, noti_msg, noti_link, '파일첨부')
         elif item_obj:
-            _notify_related_and_admins(item_obj, noti_msg, noti_link, '파일첨부', attachment_id=att.id)
+            _notify_related_and_admins(item_obj, noti_msg, noti_link, '파일첨부')
         else:
-            _notify(list(_get_admin_users()), noti_msg, noti_link, '파일첨부', attachment_id=att.id)
+            _notify(list(_get_admin_users()), noti_msg, noti_link, '파일첨부')
 
         db.session.commit()
         flash(f'"{orig_name}" 업로드 완료', 'success')
