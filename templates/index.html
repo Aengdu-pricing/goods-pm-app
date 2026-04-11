@@ -682,6 +682,7 @@
         {% set is_weekend = (i % 7 >= 5) %}
         {% set events = md.day_events.get(d, []) if d else [] %}
         {% set delivery_events = events|selectattr('type','equalto','delivery')|list %}
+        {% set kakao_events_cell = events|selectattr('type','equalto','kakao')|list + events|selectattr('type','equalto','kakao_end')|list %}
         <div style="border-right:1px solid var(--border-light);border-bottom:1px solid var(--border-light);padding:2px 3px;height:{{ row_h }}px;box-sizing:border-box;overflow:hidden;
                     {{ 'background:var(--green-pale);' if is_today else 'background:#FAFAF8;' if is_weekend and d else '' }}
                     {{ 'opacity:.3;' if d is none else '' }}">
@@ -693,6 +694,10 @@
           {% for ev in delivery_events %}
           <div style="font-size:7px;padding:1px 2px;border-radius:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
                       background:var(--danger);color:#fff;font-weight:600;margin-top:1px" title="{{ ev.full }}">📦{{ ev.label[:6] }}</div>
+          {% endfor %}
+          {% for ev in kakao_events_cell %}
+          <div style="font-size:7px;padding:1px 2px;border-radius:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+                      background:#F5A623;color:#fff;font-weight:600;margin-top:1px" title="{{ ev.full }}">🟡{{ ev.label[:6] }}</div>
           {% endfor %}
           {% endif %}
         </div>

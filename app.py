@@ -834,6 +834,31 @@ def _build_month_data(year, month, today):
             'stage': '입고', 'status': it.status, 'full': it.name
         })
 
+    # ── 카카오메이커스 이벤트 (셀 이벤트 + 바) ──
+    kakao_events = KakaoEvent.query.filter(
+        KakaoEvent.period_start != None, KakaoEvent.period_end != None,
+        KakaoEvent.period_start <= month_end, KakaoEvent.period_end >= month_start,
+    ).all()
+    for ke in kakao_events:
+        # 시작일이 이 달에 있으면 셀 이벤트 표시
+        if month_start <= ke.period_start <= month_end:
+            d = ke.period_start.day
+            if d not in day_events:
+                day_events[d] = []
+            day_events[d].append({
+                'type': 'kakao', 'label': ke.name[:10],
+                'stage': '카카오', 'status': ke.status, 'full': ke.name,
+            })
+        # 종료일이 이 달에 있으면 셀 이벤트 표시
+        if month_start <= ke.period_end <= month_end and ke.period_end != ke.period_start:
+            d = ke.period_end.day
+            if d not in day_events:
+                day_events[d] = []
+            day_events[d].append({
+                'type': 'kakao_end', 'label': f'{ke.name[:8]} 종료',
+                'stage': '카카오', 'status': ke.status, 'full': ke.name,
+            })
+
     # ── 품목별 단일 바 생성 (기획 시작일 ~ 입고 마감일) ──
     ITEM_PALETTE = [
         '#2E7D9B', '#7C6DAF', '#D4883A', '#2EAD6B', '#C75B7A',
@@ -890,6 +915,35 @@ def _build_month_data(year, month, today):
                 'item_id': item_id, 'color': color, 'opacity': opacity,
                 'label': item_label if first_segment else '',
                 'title': f'{r["name"]}  {r["start"].strftime("%m/%d")} ~ {r["end"].strftime("%m/%d")}',
+                'round_left': is_real_start, 'round_right': is_real_end,
+            })
+            bar_id += 1
+            cur_day += span
+            first_segment = False
+
+    # ── 카카오메이커스 이벤트 바 (주황 계열) ──
+    KAKAO_COLOR = '#F5A623'
+    for ke in kakao_events:
+        vis_start = max(ke.period_start, month_start)
+        vis_end = min(ke.period_end, month_end)
+        start_day, end_day = vis_start.day, vis_end.day
+        kakao_label = f'🟡 {ke.name[:12]}'
+        kakao_item_id = f'kakao_{ke.id}'
+
+        cur_day = start_day
+        first_segment = True
+        while cur_day <= end_day:
+            cell_idx = first_weekday + (cur_day - 1)
+            row = cell_idx // 7
+            col_start = cell_idx % 7
+            span = min(7 - col_start, end_day - cur_day + 1)
+            is_real_start = (cur_day == start_day and ke.period_start >= month_start)
+            is_real_end = (cur_day + span - 1 == end_day and ke.period_end <= month_end)
+            bars.append({
+                'id': bar_id, 'row': row, 'col': col_start, 'span': span,
+                'item_id': kakao_item_id, 'color': KAKAO_COLOR, 'opacity': '1',
+                'label': kakao_label if first_segment else '',
+                'title': f'카카오메이커스: {ke.name}  {ke.period_start.strftime("%m/%d")} ~ {ke.period_end.strftime("%m/%d")}',
                 'round_left': is_real_start, 'round_right': is_real_end,
             })
             bar_id += 1
@@ -1276,8 +1330,44 @@ def create_kakao_event():
         memo=request.form.get('memo', ''),
     )
     db.session.add(ev)
+    db.session.flush()  # get ev.id
+
+    # ── 자동 업무 생성: 번들 상품별 준비 Task ──
+    from datetime import timedelta
+    bundle_ids = json.loads(bundles_json) if bundles_json else []
+    prep_due = ev.period_start - timedelta(days=7) if ev.period_start else None
+    for bid in bundle_ids:
+        item = Item.query.get(int(bid))
+        if not item:
+            continue
+        task = Task(
+            title=f'[카카오] {ev.name} — {item.name} 준비',
+            description=f'카카오메이커스 이벤트 "{ev.name}" 번들 상품 준비\n기간: {ev.period_start} ~ {ev.period_end}',
+            item_id=item.id,
+            assignee_id=item.owner_id or current_user.id,
+            status='대기',
+            priority='높음',
+            stage='기획',
+            start_date=date.today(),
+            due_date=prep_due,
+        )
+        db.session.add(task)
+    # 번들이 없어도 이벤트 전체 준비 Task 1개 생성
+    if not bundle_ids:
+        task = Task(
+            title=f'[카카오] {ev.name} 준비',
+            description=f'카카오메이커스 이벤트 "{ev.name}" 준비\n기간: {ev.period_start} ~ {ev.period_end}',
+            assignee_id=current_user.id,
+            status='대기',
+            priority='높음',
+            stage='기획',
+            start_date=date.today(),
+            due_date=prep_due,
+        )
+        db.session.add(task)
+
     db.session.commit()
-    flash(f'카카오메이커스 이벤트 "{ev.name}" 등록!', 'success')
+    flash(f'카카오메이커스 이벤트 "{ev.name}" 등록! 업무 {max(len(bundle_ids),1)}건 자동 생성', 'success')
     return redirect(url_for('kakao'))
 
 @app.route('/kakao/<int:event_id>/update', methods=['POST'])
