@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from models import db, User, Category, Item, Task, Comment, InventoryLog, WeeklyCount, Feedback, Idea, KakaoEvent, CostRecord, Performance, Attachment, ChecklistItem, Notification
+from models import db, User, Category, Item, Task, Comment, InventoryLog, WeeklyCount, Feedback, Idea, KakaoEvent, CostRecord, Performance, Attachment, ChecklistItem, Notification, RolePermission
 
 app = Flask(__name__)
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -226,7 +226,7 @@ def dashboard():
 
     # ── 나의 업무 + 재고 현황 (기존) ──
     # 소장/편집장은 전체 진행 업무 표시, 나머지는 본인 배정 업무만
-    if current_user.role in ('소장', '편집장', '행정팀장'):
+    if has_perm('view_all_tasks'):
         my_tasks = Task.query.filter(Task.status!='완료').order_by(Task.due_date).limit(8).all()
     else:
         my_tasks = Task.query.filter_by(assignee_id=current_user.id).filter(Task.status!='완료').order_by(Task.due_date).limit(5).all()
@@ -707,7 +707,8 @@ def upload_file():
         context_name = item_obj.name
     noti_msg = f'{current_user.name}님이 "{context_name}"에 파일을 첨부했습니다: {orig_name}'
     noti_link = url_for('tasks')
-    managers = User.query.filter(User.role.in_(['소장', '편집장', '행정팀장'])).all()
+    noti_roles = get_roles_with_perm('receive_notifications')
+    managers = User.query.filter(User.role.in_(noti_roles)).all()
     for mgr in managers:
         if mgr.id != current_user.id:  # 본인에겐 알림 안 보냄
             noti = Notification(
@@ -1232,7 +1233,8 @@ def create_idea():
     # 편집장/행정팀장/소장에게 새 아이디어 알림
     noti_msg = f'{current_user.name}님이 새 아이디어를 제안했습니다: "{idea.title}"'
     noti_link = url_for('ideas')
-    reviewers = User.query.filter(User.role.in_(['소장', '편집장', '행정팀장'])).all()
+    noti_roles = get_roles_with_perm('receive_notifications')
+    reviewers = User.query.filter(User.role.in_(noti_roles)).all()
     for rev in reviewers:
         if rev.id != current_user.id:
             noti = Notification(
@@ -1789,10 +1791,60 @@ def profile():
 
     return render_template('index.html', page='profile')
 
-ADMIN_ROLES = ['소장', '편집장', '행정팀장']
+# ═══ 권한 시스템 ═══
+PERMISSION_DEFS = {
+    'view_all_tasks': '전체 업무 열람',
+    'manage_users': '사용자 관리',
+    'review_ideas': '아이디어 승인/반려',
+    'receive_notifications': '알림 수신 (파일첨부, 아이디어 등)',
+    'manage_items': '상품 등록/수정',
+    'manage_inventory': '재고 관리',
+    'manage_costs': '비용 관리',
+    'manage_checklist': '퀄리티 체크리스트',
+    'use_ai_check': '제작 가이드 사용',
+    'manage_kakao': '카카오메이커스 관리',
+    'manage_marketing': '마케팅 부스팅',
+}
+
+ALL_ROLES = ['소장', '편집장', '행정팀장', '실무자', '디자이너', '구독매니저1', '구독매니저2']
+
+DEFAULT_PERMISSIONS = {
+    '소장':       ['view_all_tasks', 'manage_users', 'review_ideas', 'receive_notifications', 'manage_items', 'manage_inventory', 'manage_costs', 'manage_checklist', 'use_ai_check', 'manage_kakao', 'manage_marketing'],
+    '편집장':     ['view_all_tasks', 'manage_users', 'review_ideas', 'receive_notifications', 'manage_items', 'manage_inventory', 'manage_costs', 'manage_checklist', 'use_ai_check', 'manage_kakao', 'manage_marketing'],
+    '행정팀장':   ['view_all_tasks', 'manage_users', 'review_ideas', 'receive_notifications', 'manage_items', 'manage_inventory', 'manage_costs', 'manage_checklist', 'use_ai_check', 'manage_kakao', 'manage_marketing'],
+    '실무자':     ['manage_items', 'manage_inventory', 'manage_costs', 'manage_checklist', 'use_ai_check', 'manage_kakao', 'manage_marketing'],
+    '디자이너':   ['manage_items', 'manage_checklist', 'use_ai_check'],
+    '구독매니저1': ['manage_inventory', 'manage_costs', 'manage_checklist'],
+    '구독매니저2': ['manage_inventory', 'manage_costs', 'manage_checklist'],
+}
+
+def seed_permissions():
+    """기본 권한이 없으면 초기화"""
+    existing = RolePermission.query.first()
+    if existing:
+        return
+    for role, perms in DEFAULT_PERMISSIONS.items():
+        for perm_key in PERMISSION_DEFS:
+            rp = RolePermission(role=role, permission=perm_key, enabled=(perm_key in perms))
+            db.session.add(rp)
+    db.session.commit()
+
+def has_perm(permission, role=None):
+    """현재 사용자(또는 지정 역할)가 특정 권한을 가지고 있는지 확인"""
+    r = role or current_user.role
+    rp = RolePermission.query.filter_by(role=r, permission=permission).first()
+    if rp:
+        return rp.enabled
+    # DB에 없으면 기본값 참조
+    return permission in DEFAULT_PERMISSIONS.get(r, [])
 
 def is_admin():
-    return current_user.role in ADMIN_ROLES
+    return has_perm('manage_users')
+
+def get_roles_with_perm(permission):
+    """특정 권한을 가진 역할 목록 반환"""
+    perms = RolePermission.query.filter_by(permission=permission, enabled=True).all()
+    return [p.role for p in perms]
 
 @app.route('/admin/users')
 @login_required
@@ -1876,6 +1928,43 @@ def admin_delete_user(user_id):
     db.session.commit()
     flash(f'사용자 "{name}"이 삭제되었습니다.', 'success')
     return redirect(url_for('admin_users'))
+
+@app.route('/admin/permissions')
+@login_required
+def admin_permissions():
+    if not is_admin():
+        flash('관리자만 접근할 수 있습니다.', 'error')
+        return redirect(url_for('dashboard'))
+    # 역할별 권한 매트릭스 구성
+    perm_matrix = {}
+    for role in ALL_ROLES:
+        perm_matrix[role] = {}
+        for perm_key in PERMISSION_DEFS:
+            rp = RolePermission.query.filter_by(role=role, permission=perm_key).first()
+            perm_matrix[role][perm_key] = rp.enabled if rp else (perm_key in DEFAULT_PERMISSIONS.get(role, []))
+    return render_template('index.html', page='admin_permissions',
+                           perm_matrix=perm_matrix, perm_defs=PERMISSION_DEFS,
+                           all_roles=ALL_ROLES)
+
+@app.route('/admin/permissions/update', methods=['POST'])
+@login_required
+def admin_update_permissions():
+    if not is_admin():
+        flash('관리자만 권한을 변경할 수 있습니다.', 'error')
+        return redirect(url_for('dashboard'))
+    for role in ALL_ROLES:
+        for perm_key in PERMISSION_DEFS:
+            field_name = f'perm_{role}_{perm_key}'
+            enabled = field_name in request.form
+            rp = RolePermission.query.filter_by(role=role, permission=perm_key).first()
+            if rp:
+                rp.enabled = enabled
+            else:
+                rp = RolePermission(role=role, permission=perm_key, enabled=enabled)
+                db.session.add(rp)
+    db.session.commit()
+    flash('권한 설정이 저장되었습니다.', 'success')
+    return redirect(url_for('admin_permissions'))
 
 @app.route('/feedback')
 @login_required
@@ -2111,6 +2200,7 @@ def inject_notification_count():
 with app.app_context():
     db.create_all()
     seed_database()
+    seed_permissions()
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

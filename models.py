@@ -217,6 +217,15 @@ class CostRecord(db.Model):
     adder = db.relationship('User')
 
 # ─── Performance ───
+# ─── Role Permissions (역할별 권한) ───
+class RolePermission(db.Model):
+    __tablename__ = 'role_permissions'
+    id = db.Column(db.Integer, primary_key=True)
+    role = db.Column(db.String(50), nullable=False)
+    permission = db.Column(db.String(50), nullable=False)  # permission key
+    enabled = db.Column(db.Boolean, default=False)
+    __table_args__ = (db.UniqueConstraint('role', 'permission', name='uq_role_perm'),)
+
 class Performance(db.Model):
     __tablename__ = 'performance'
     id = db.Column(db.Integer, primary_key=True)
