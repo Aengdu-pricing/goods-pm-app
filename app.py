@@ -3059,6 +3059,24 @@ def inject_notification_count():
 # ═══════════════════════════════════════════
 with app.app_context():
     db.create_all()
+
+    # 누락된 컬럼 자동 추가 (db.create_all은 기존 테이블에 새 컬럼을 추가하지 않으므로)
+    _migrate_columns = [
+        ('attachments', 'uploaded_by', 'INTEGER'),
+        ('audit_logs', 'user_id', 'INTEGER'),
+        ('audit_logs', 'action', 'VARCHAR(50)'),
+        ('audit_logs', 'target_type', 'VARCHAR(30)'),
+        ('audit_logs', 'target_id', 'INTEGER'),
+        ('audit_logs', 'target_name', 'VARCHAR(200)'),
+        ('audit_logs', 'detail', 'TEXT'),
+    ]
+    for _tbl, _col, _typ in _migrate_columns:
+        try:
+            db.session.execute(db.text(f'ALTER TABLE {_tbl} ADD COLUMN {_col} {_typ}'))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
     seed_database()
     seed_roles()
     seed_permissions()
