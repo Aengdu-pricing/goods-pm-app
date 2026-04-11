@@ -744,7 +744,7 @@
       <form method="POST" action="{{ url_for('create_item') }}">
       <div class="modal-body">
         <div class="form-row">
-          <div class="form-group"><label>상품명 <span class="req">*</span></label><input type="text" name="name" required placeholder="예: 앨리스달튼브라운 노트 3종"></div>
+          <div class="form-group"><label>상품명 <span class="req">*</span></label><input type="text" name="name" required placeholder="예: 좋은생각 수건 연핑크"><div style="margin-top:3px;font-size:10px;color:#999;line-height:1.4">네이밍 룰: <b>[주체] [카테고리] [이름] [변형] [버전]</b><br>예) 좋은생각 수건 연핑크 · 심봉민 노트 조용히쌌인기억 · 앵두 엽서세트 봄 v2</div></div>
           <div class="form-group"><label>사업 라인 <span class="req">*</span></label>
             <select name="line" required onchange="autoFillSaleUrls(this.value)"><option value="">선택</option><option value="A">A. 정기구독 사은품</option><option value="B">B. 앵두/단행본</option><option value="C">C. 카카오메이커스</option><option value="A,B">A+B</option><option value="B,C">B+C</option></select>
           </div>
@@ -855,7 +855,7 @@
       <form method="POST" id="editForm" action="">
       <div class="modal-body">
         <div class="form-row">
-          <div class="form-group"><label>상품명 <span class="req">*</span></label><input type="text" name="name" id="editName" required></div>
+          <div class="form-group"><label>상품명 <span class="req">*</span></label><input type="text" name="name" id="editName" required><div style="margin-top:3px;font-size:10px;color:#999;line-height:1.4">룰: [주체] [카테고리] [이름] [변형] [버전]</div></div>
           <div class="form-group"><label>사업 라인 <span class="req">*</span></label>
             <select name="line" id="editLine" required><option value="">선택</option><option value="A">A. 정기구독 사은품</option><option value="B">B. 앵두/단행본</option><option value="C">C. 카카오메이커스</option><option value="A,B">A+B</option><option value="B,C">B+C</option></select>
           </div>
