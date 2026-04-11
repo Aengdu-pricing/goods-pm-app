@@ -224,6 +224,19 @@ def dashboard():
     total_target = sum(i.target_qty or 0 for i in selling_items)
     avg_remain_pct = round(total_stock / total_target * 100, 1) if total_target > 0 else 0
 
+    # ── 카카오메이커스 역산 알림 ──
+    kakao_deadline = 45  # 판매 시작 45일 전부터 알림
+    kakao_alerts = []
+    upcoming_kakao = KakaoEvent.query.filter(
+        KakaoEvent.period_start != None,
+        KakaoEvent.status.in_(['기획중', '준비완료'])
+    ).all()
+    for ev in upcoming_kakao:
+        days_until = (ev.period_start - today).days
+        if 0 < days_until <= kakao_deadline:
+            kakao_alerts.append({'name': ev.name, 'start': ev.period_start, 'days': days_until})
+    kakao_alerts.sort(key=lambda x: x['days'])
+
     # ── 나의 업무 + 재고 현황 (기존) ──
     # 소장/편집장은 전체 진행 업무 표시, 나머지는 본인 배정 업무만
     if has_perm('view_all_tasks'):
@@ -237,7 +250,8 @@ def dashboard():
                            stock_alerts=stock_alerts, lowest_item=lowest_item, lowest_pct=round(lowest_pct, 1) if lowest_item else 0,
                            pipeline_count=pipeline_count, pipeline_items=pipeline_items,
                            selling_count=selling_count, avg_remain_pct=avg_remain_pct,
-                           my_tasks=my_tasks, items_a=items_a, today=today)
+                           my_tasks=my_tasks, items_a=items_a, today=today,
+                           kakao_alerts=kakao_alerts)
 
 @app.route('/tasks')
 @login_required

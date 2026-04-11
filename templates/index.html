@@ -145,12 +145,25 @@
     </a>
   </div>
 
+  <!-- ── 카카오메이커스 역산 알림 ── -->
+  {% if kakao_alerts %}
+  <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:12px 16px;margin-bottom:12px">
+    <div style="font-weight:600;font-size:13px;color:#c2410c;margin-bottom:6px">🛒 카카오메이커스 준비 알림</div>
+    {% for ka in kakao_alerts %}
+    <div style="font-size:12px;color:#9a3412;margin-top:4px">
+      <strong>{{ ka.name }}</strong> — 판매 시작까지 <strong>{{ ka.days }}일</strong> 남음 ({{ ka.start.strftime('%m/%d') }})
+      {% if ka.days <= 14 %}<span style="background:#dc2626;color:#fff;padding:1px 6px;border-radius:4px;font-size:10px;margin-left:4px">긴급</span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
   <!-- ── 메인 컨텐츠: 나의 업무 + 재고 현황 ── -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
     <div class="card">
       <h3 style="display:flex;align-items:center;gap:6px">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brown)" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        {% if current_user.role in ('소장', '편집장') %}전체 진행 업무{% else %}나의 업무{% endif %}
+        {% if current_user.role in ('소장', '편집장', '행정팀장') %}전체 진행 업무{% else %}나의 업무{% endif %}
       </h3>
       {% if my_tasks %}
       {% for t in my_tasks %}
@@ -159,7 +172,7 @@
           <span class="priority-dot {{ 'urgent' if t.priority=='긴급' else 'high' if t.priority=='높음' else 'normal' }}"></span>
           {{ t.title }}
         </div>
-        {% if t.item %}<div style="font-size:10px;color:var(--text-light);margin-top:1px">{{ t.item.name }}{% if current_user.role in ('소장','편집장') and t.assignee %} · {{ t.assignee.name }}{% endif %}</div>{% endif %}
+        {% if t.item %}<div style="font-size:10px;color:var(--text-light);margin-top:1px">{{ t.item.name }}{% if current_user.role in ('소장','편집장','행정팀장') and t.assignee %} · {{ t.assignee.name }}{% endif %}</div>{% endif %}
         <div class="task-meta">
           <span class="status-badge {% if t.stage == '기획' %}plan{% elif t.stage == '디자인' %}design{% elif t.stage == '제작' %}prod{% else %}stock{% endif %}" style="font-size:10px">{{ t.stage or '' }}</span>
           {% if t.due_date %}
@@ -1341,10 +1354,15 @@
     </div>
   </div>
 
+  {# ── 검색 ── #}
+  <div style="margin-bottom:12px">
+    <input type="text" id="costSearch" placeholder="🔍 상품명, 항목명으로 검색..." oninput="filterCards('costSearch','costCard')" style="width:100%;max-width:360px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box">
+  </div>
+
   {# ── 상품별 비용 기록 ── #}
   {% for ic in item_costs %}
   {% if ic.records or ic.est_total %}
-  <div class="card" style="border-left:4px solid {{ 'var(--danger)' if ic.diff and ic.diff > 0 else 'var(--green)' if ic.diff and ic.diff <= 0 else 'var(--brown-light)' }}">
+  <div class="card costCard" data-search="{{ ic.item.name }} {{ ic.item.line }}" style="border-left:4px solid {{ 'var(--danger)' if ic.diff and ic.diff > 0 else 'var(--green)' if ic.diff and ic.diff <= 0 else 'var(--brown-light)' }}">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <div>
         <span style="font-weight:600;font-size:14px;color:var(--brown)">{{ ic.item.name }}</span>
@@ -1483,9 +1501,12 @@
 
   <!-- 피드백 목록 -->
   <div class="card">
-    <h3>💬 피드백 목록 ({{ feedbacks|length }}건)</h3>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <h3 style="margin:0">💬 피드백 목록 ({{ feedbacks|length }}건)</h3>
+      <input type="text" id="fbSearch" placeholder="🔍 내용, 상품, 고객 검색..." oninput="filterTable('fbSearch','fbTable')" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;width:240px">
+    </div>
     {% if feedbacks %}
-    <table class="data-table">
+    <table class="data-table" id="fbTable">
       <thead><tr><th>날짜</th><th>분류</th><th>내용</th><th>채널</th><th>고객</th><th>상품</th><th>관리</th></tr></thead>
       <tbody>
         {% for fb in feedbacks %}
@@ -2135,6 +2156,22 @@ function deleteCost(id) {
   fetch('/cost/delete/' + id, { method:'POST' })
     .then(r => r.json())
     .then(d => { if(d.ok) location.reload(); });
+}
+
+// ═══ 검색 필터 ═══
+function filterCards(inputId, cardClass) {
+  var q = document.getElementById(inputId).value.toLowerCase();
+  document.querySelectorAll('.' + cardClass).forEach(function(el) {
+    var txt = (el.getAttribute('data-search') || '') + ' ' + el.textContent;
+    el.style.display = txt.toLowerCase().indexOf(q) >= 0 ? '' : 'none';
+  });
+}
+function filterTable(inputId, tableId) {
+  var q = document.getElementById(inputId).value.toLowerCase();
+  var rows = document.getElementById(tableId).querySelectorAll('tbody tr');
+  rows.forEach(function(row) {
+    row.style.display = row.textContent.toLowerCase().indexOf(q) >= 0 ? '' : 'none';
+  });
 }
 
 // Close modal on overlay click
