@@ -466,8 +466,9 @@
             {% endif %}
           </td>
           <td>{{ it.owner.name if it.owner else '-' }}</td>
-          <td style="display:flex;gap:4px;align-items:center">
+          <td style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
             <button type="button" onclick="openEditModal({{ it.id }})" class="btn-edit">수정</button>
+            <button type="button" onclick="openRenewalModal({{ it.id }}, '{{ it.name }}')" style="padding:3px 8px;font-size:11px;background:#7C6DAF;color:#fff;border:none;border-radius:4px;cursor:pointer">🔄 리뉴얼</button>
             <form method="POST" action="{{ url_for('delete_item', item_id=it.id) }}" style="display:inline" onsubmit="return confirm('「{{ it.name }}」을(를) 삭제하시겠습니까?\n연결된 업무도 함께 삭제됩니다.')">
               <button type="submit" class="btn-del">삭제</button>
             </form>
@@ -480,6 +481,32 @@
 
   <div style="margin-top:16px">
     <a href="https://grim-timi-positivethinking-72254524.koyeb.app/" target="_blank" class="btn-pricing">🔗 앵두 가격 추천 로봇에서 판매가 계산하기 →</a>
+  </div>
+
+  <!-- Renewal Modal -->
+  <div class="modal-overlay" id="renewalModal">
+    <div class="modal" style="max-width:420px">
+      <div class="modal-header">
+        <h3>🔄 리뉴얼 업무 생성</h3>
+        <button class="modal-close" onclick="document.getElementById('renewalModal').classList.remove('show')">×</button>
+      </div>
+      <form id="renewalForm" method="POST">
+        <p id="renewalItemName" style="font-weight:600;margin-bottom:12px;color:var(--brown)"></p>
+        <p style="font-size:12px;color:var(--text-light);margin-bottom:16px">디자인 → 컨펌/견적 → 제작 → 입고 4단계 업무가 생성됩니다.</p>
+        <div class="form-group">
+          <label>목표 입고일 *</label>
+          <input type="date" name="target_date" required>
+        </div>
+        <div class="form-group">
+          <label>리뉴얼 내용 (예: 커버 교체, 박스 변경)</label>
+          <input type="text" name="memo" placeholder="간단한 메모">
+        </div>
+        <div class="modal-footer" style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
+          <button type="button" class="btn-outline" onclick="document.getElementById('renewalModal').classList.remove('show')">취소</button>
+          <button type="submit" class="btn-primary">🔄 업무 생성</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- Item Registration Modal -->
@@ -2214,6 +2241,12 @@ function addAISuggestion(itemId, el) {
 }
 
 // Edit item modal
+function openRenewalModal(itemId, itemName) {
+  document.getElementById('renewalForm').action = '/items/' + itemId + '/renewal';
+  document.getElementById('renewalItemName').textContent = '📦 ' + itemName;
+  document.getElementById('renewalModal').classList.add('show');
+}
+
 function openEditModal(itemId) {
   fetch('/api/items/' + itemId)
     .then(r => r.json())

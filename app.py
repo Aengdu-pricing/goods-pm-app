@@ -383,8 +383,8 @@ def create_item():
     db.session.add(item)
     db.session.flush()
 
-    # 기존 품목이 아닐 때만 업무 자동 생성
-    if not is_existing and target_date:
+    # 업무 자동 생성: 신규든 기존이든 입고일이 있으면 생성
+    if target_date:
         auto_generate_tasks(item, owner_id)
 
     # 퀄리티 체크리스트 자동 생성 (카테고리 기반)
@@ -760,6 +760,74 @@ def skip_sample(task_id):
     db.session.commit()
     flash(f'컨펌/견적 건너뜀 → 제작 발주 단계로 이동합니다.', 'success')
     return jsonify({'ok': True})
+
+@app.route('/items/<int:item_id>/renewal', methods=['POST'])
+@login_required
+def create_renewal(item_id):
+    """리뉴얼 업무 생성 (디자인→컨펌/견적→제작→입고 4단계)"""
+    item = Item.query.get_or_404(item_id)
+    # 이미 진행 중인 리뉴얼 업무가 있는지 확인
+    existing = Task.query.filter_by(item_id=item_id).filter(
+        Task.title.contains('리뉴얼'),
+        Task.status.in_(['대기', '진행중'])
+    ).first()
+    if existing:
+        flash(f'이미 진행 중인 리뉴얼 업무가 있습니다: "{existing.title}"', 'warning')
+        return redirect(url_for('items'))
+
+    memo = request.form.get('memo', '').strip()
+    target_date_str = request.form.get('target_date', '')
+    target = date.fromisoformat(target_date_str) if target_date_str else (item.target_date or date.today() + timedelta(days=90))
+
+    # 입고일 업데이트
+    item.target_date = target
+
+    # 역산: 입고 ← 제작(30일) ← 컨펌/견적(7일) ← 디자인(21일)
+    designer = User.query.filter_by(role='디자이너').first()
+    admin_mgr = User.query.filter_by(role='행정팀장').first()
+
+    stock_date = target
+    prod_end = target - timedelta(days=20)
+    prod_start = prod_end - timedelta(days=30)
+    sample_end = prod_start - timedelta(days=1)
+    sample_start = sample_end - timedelta(days=6)
+    design_end = sample_start - timedelta(days=1)
+    design_start = design_end - timedelta(days=20)
+
+    label = f'리뉴얼' + (f' ({memo})' if memo else '')
+    stages = [
+        (f'{item.name} {label} 디자인', '디자인', design_start, design_end,
+         designer.id if designer else current_user.id, '높음'),
+        (f'{item.name} {label} 컨펌/견적', '컨펌/견적', sample_start, sample_end,
+         item.owner_id or current_user.id, '보통'),
+        (f'{item.name} {label} 제작발주', '제작', prod_start, prod_end,
+         item.owner_id or current_user.id, '보통'),
+        (f'{item.name} {label} 입고확인', '입고', stock_date, stock_date,
+         admin_mgr.id if admin_mgr else current_user.id, '보통'),
+    ]
+    for title, stage, start, due, assignee, priority in stages:
+        t = Task(title=title, item_id=item.id, stage=stage, status='대기',
+                 start_date=start, due_date=due, assignee_id=assignee, priority=priority)
+        db.session.add(t)
+
+    # 첫 단계(디자인) 바로 진행중으로
+    db.session.flush()
+    first_task = Task.query.filter_by(item_id=item.id, stage='디자인').filter(
+        Task.title.contains('리뉴얼')
+    ).order_by(Task.id.desc()).first()
+    if first_task:
+        first_task.status = '진행중'
+
+    # 관련자 + 상위 3역할에게 알림
+    _notify_related_and_admins(
+        item,
+        f'🔄 "{item.name}" 리뉴얼 업무 4건 생성! ({current_user.name})',
+        url_for('tasks'),
+        '리뉴얼',
+    )
+    db.session.commit()
+    flash(f'"{item.name}" 리뉴얼 업무 4건 생성! (디자인→컨펌/견적→제작→입고)', 'success')
+    return redirect(url_for('tasks'))
 
 @app.route('/items/<int:item_id>/reorder', methods=['POST'])
 @login_required
