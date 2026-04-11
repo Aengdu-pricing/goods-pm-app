@@ -454,8 +454,8 @@ def create_item():
     line = request.form['line']
     category_id = request.form.get('category_id') or None
     artist = request.form.get('artist', '')
-    unit_cost = int(request.form['unit_cost']) if request.form.get('unit_cost') else None
-    target_qty = int(request.form['target_qty']) if request.form.get('target_qty') else None
+    unit_cost = max(0, int(request.form['unit_cost'])) if request.form.get('unit_cost') else None
+    target_qty = max(0, int(request.form['target_qty'])) if request.form.get('target_qty') else None
     owner_id = int(request.form['owner_id']) if request.form.get('owner_id') else current_user.id
     target_date_str = request.form.get('target_date', '')
     target_date = date.fromisoformat(target_date_str) if target_date_str else None
@@ -489,6 +489,12 @@ def create_item():
         if not sale_aengdu:
             sale_aengdu = f'https://aengdu.kr/?s={q}'
 
+    # 중복 이름 차단
+    existing_same_name = Item.query.filter(Item.name == name).first()
+    if existing_same_name:
+        flash(f'⚠️ 동일 이름 상품 "{name}"이 이미 있습니다. 다른 이름을 사용해주세요.', 'error')
+        return redirect(url_for('items'))
+
     # 기존 품목 모드: 상태와 재고를 직접 설정
     is_existing = request.form.get('is_existing') == 'on'
     if is_existing:
@@ -518,10 +524,7 @@ def create_item():
     # 퀄리티 체크리스트 자동 생성 (카테고리 기반)
     checklist_count = _create_checklist_for_item(item)
 
-    # 중복 이름 경고 (삭제하지 않고 경고만)
-    existing_same_name = Item.query.filter(Item.name == name, Item.id != item.id).first()
-    if existing_same_name:
-        flash(f'⚠️ 동일 이름 상품 "{name}"이 이미 있습니다. 확인해주세요.', 'warning')
+    # (중복 이름은 상단에서 이미 차단됨)
 
     # 상품 등록 알림: 관련자 + 상위 3역할
     _notify_related_and_admins(
@@ -594,13 +597,17 @@ def update_item_status(item_id):
 @login_required
 def edit_item(item_id):
     item = Item.query.get_or_404(item_id)
+    # 권한 체크: 본인 소유 or 관리자만 수정 가능
+    if item.owner_id != current_user.id and not is_admin():
+        flash('상품 수정은 담당자 또는 관리자만 가능합니다.', 'error')
+        return redirect(url_for('items'))
     item.name = request.form['name']
     item.line = request.form['line']
     item.category_id = request.form.get('category_id') or None
     item.artist = request.form.get('artist', '')
-    item.unit_cost = int(request.form['unit_cost']) if request.form.get('unit_cost') else None
-    item.target_qty = int(request.form['target_qty']) if request.form.get('target_qty') else None
-    item.current_stock = int(request.form['current_stock']) if request.form.get('current_stock') else 0
+    item.unit_cost = max(0, int(request.form['unit_cost'])) if request.form.get('unit_cost') else None
+    item.target_qty = max(0, int(request.form['target_qty'])) if request.form.get('target_qty') else None
+    item.current_stock = max(0, int(request.form['current_stock'])) if request.form.get('current_stock') else 0
     item.status = request.form.get('status', item.status)
     item.usage = request.form.get('usage', '판매')
     item.owner_id = int(request.form['owner_id']) if request.form.get('owner_id') else current_user.id
@@ -1141,6 +1148,13 @@ def download_file(filename):
 @login_required
 def delete_attachment(att_id):
     att = Attachment.query.get_or_404(att_id)
+    # 권한 체크: 업로더, 업무 담당자, 관리자만 삭제 가능
+    task = Task.query.get(att.task_id) if att.task_id else None
+    is_uploader = att.uploaded_by == current_user.id if hasattr(att, 'uploaded_by') and att.uploaded_by else False
+    is_task_owner = task and task.assignee_id == current_user.id if task else False
+    if not is_uploader and not is_task_owner and not is_admin():
+        flash('첨부파일 삭제는 업로더, 업무 담당자, 관리자만 가능합니다.', 'error')
+        return redirect(request.referrer or url_for('tasks'))
     filepath = os.path.join(UPLOAD_DIR, att.filename)
     if os.path.exists(filepath):
         os.remove(filepath)
@@ -1456,6 +1470,9 @@ def inventory():
 def submit_weekly_count():
     item_id = int(request.form['item_id'])
     counted_qty = int(request.form['counted_qty'])
+    if counted_qty < 0:
+        flash('재고 수량은 0 이상이어야 합니다.', 'error')
+        return redirect(url_for('inventory'))
     item = Item.query.get_or_404(item_id)
     # 중복 방지: 같은 날짜에 이미 실사한 기록이 있으면 업데이트
     existing = WeeklyCount.query.filter_by(item_id=item_id, counted_at=date.today()).first()
@@ -1592,6 +1609,8 @@ def confirm_inventory_pdf():
         try:
             item_id = int(item_id_str)
             qty = int(qtys[i]) if i < len(qtys) else 0
+            if qty < 0:
+                qty = 0
         except (ValueError, IndexError):
             continue
 
