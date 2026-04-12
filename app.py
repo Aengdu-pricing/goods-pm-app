@@ -2931,108 +2931,172 @@ def upload_feedback_pdf():
     filepath = os.path.join(UPLOAD_DIR, safe_name)
     file.save(filepath)
 
-    # PDF 텍스트 추출
-    extracted_text = ''
+    # PDF 테이블 추출 (더아이앤오 고객의소리 PDF 최적화)
+    import re
+    count = 0
+    table_parsed = False
+
     try:
         import pdfplumber
         with pdfplumber.open(filepath) as pdf:
             for pg in pdf.pages:
-                extracted_text += (pg.extract_text() or '') + '\n'
+                tables = pg.extract_tables()
+                for tbl in tables:
+                    if not tbl or len(tbl) < 2:
+                        continue
+                    # 헤더행 찾기: '고객의 소리' 또는 '상담분류' 포함된 행
+                    header = tbl[0]
+                    header_str = ' '.join([str(c) for c in header if c])
+                    if '고객' not in header_str and '상담' not in header_str:
+                        continue
+                    # 컬럼 인덱스 매핑 (유연하게)
+                    col_map = {}
+                    for ci, cell in enumerate(header):
+                        if not cell:
+                            continue
+                        cl = cell.strip()
+                        if '분류' in cl:
+                            col_map['category'] = ci
+                        elif '고객의' in cl or '소리' in cl or '내용' in cl:
+                            col_map['content'] = ci
+                        elif '상담일' in cl or '날짜' in cl or '접수일' in cl:
+                            col_map['date'] = ci
+                        elif '책' in cl or '종류' in cl:
+                            col_map['book'] = ci
+                        elif '회원' in cl or '번호' in cl:
+                            col_map['member'] = ci
+                        elif '고객명' in cl or '이름' in cl:
+                            col_map['name'] = ci
+
+                    if 'content' not in col_map:
+                        continue  # 핵심 컬럼 없으면 스킵
+
+                    table_parsed = True
+                    last_category = '기타'
+                    year = date.today().year
+
+                    for row in tbl[1:]:
+                        # 상담분류: None이면 이전 행 분류 이어받기
+                        raw_cat = row[col_map.get('category', 0)] if col_map.get('category') is not None else None
+                        if raw_cat and raw_cat.strip():
+                            last_category = raw_cat.strip()
+                        fb_category = last_category
+
+                        # 카테고리 정규화
+                        cat_norm = fb_category.replace(' ', '')
+                        if '컨텐츠' in cat_norm or '이슈' in cat_norm:
+                            fb_category = '컨텐츠이슈'
+                        elif '감사' in cat_norm:
+                            fb_category = '감사'
+                        elif '불만' in cat_norm or '클레임' in cat_norm:
+                            fb_category = '불만'
+                        elif '문의' in cat_norm:
+                            fb_category = '문의'
+
+                        # 내용
+                        raw_content = row[col_map['content']] if col_map['content'] < len(row) else ''
+                        fb_content = (raw_content or '').replace('\n', ' ').strip()
+                        if not fb_content:
+                            continue
+
+                        # 상담일 파싱
+                        fb_date = date.today()
+                        if 'date' in col_map and col_map['date'] < len(row) and row[col_map['date']]:
+                            raw_date = row[col_map['date']].strip()
+                            # "3월 16일" → date
+                            dm = re.match(r'(\d{1,2})월\s*(\d{1,2})일?', raw_date)
+                            if dm:
+                                try:
+                                    fb_date = date(year, int(dm.group(1)), int(dm.group(2)))
+                                except ValueError:
+                                    pass
+                            else:
+                                # "2026-03-16" 또는 "2026.03.16"
+                                dm2 = re.search(r'(\d{4})[./-](\d{1,2})[./-](\d{1,2})', raw_date)
+                                if dm2:
+                                    try:
+                                        fb_date = date(int(dm2.group(1)), int(dm2.group(2)), int(dm2.group(3)))
+                                    except ValueError:
+                                        pass
+
+                        # 책 종류
+                        fb_channel = 'PDF업로드'
+                        if 'book' in col_map and col_map['book'] < len(row) and row[col_map['book']]:
+                            fb_channel = row[col_map['book']].replace('\n', ' ').strip() or 'PDF업로드'
+
+                        # 회원번호 (줄바꿈 정리)
+                        fb_member = ''
+                        if 'member' in col_map and col_map['member'] < len(row) and row[col_map['member']]:
+                            fb_member = row[col_map['member']].replace('\n', '').replace(' ', '').strip()
+
+                        # 고객명
+                        fb_customer = ''
+                        if 'name' in col_map and col_map['name'] < len(row) and row[col_map['name']]:
+                            fb_customer = row[col_map['name']].replace('\n', ' ').strip()
+
+                        # 고객 참조 정보: 회원번호 + 고객명
+                        customer_ref = ''
+                        if fb_member and fb_customer:
+                            customer_ref = f'{fb_member} {fb_customer}'
+                        elif fb_member:
+                            customer_ref = fb_member
+                        elif fb_customer:
+                            customer_ref = fb_customer
+
+                        fb = Feedback(
+                            category_type=fb_category,
+                            content=fb_content[:1000],
+                            channel=fb_channel,
+                            feedback_date=fb_date,
+                            customer_ref=customer_ref,
+                        )
+                        db.session.add(fb)
+                        count += 1
+
     except ImportError:
+        pass
+
+    # 테이블 파싱 실패 시 텍스트 기반 폴백
+    if not table_parsed:
+        extracted_text = ''
         try:
-            import PyPDF2
-            reader = PyPDF2.PdfReader(filepath)
-            for pg in reader.pages:
-                extracted_text += (pg.extract_text() or '') + '\n'
+            import pdfplumber
+            with pdfplumber.open(filepath) as pdf:
+                for pg in pdf.pages:
+                    extracted_text += (pg.extract_text() or '') + '\n'
         except ImportError:
-            # 라이브러리 없으면 raw 텍스트로 저장
-            extracted_text = '[PDF 파싱 라이브러리 없음 — 수동 확인 필요]'
+            try:
+                import PyPDF2
+                reader = PyPDF2.PdfReader(filepath)
+                for pg in reader.pages:
+                    extracted_text += (pg.extract_text() or '') + '\n'
+            except ImportError:
+                extracted_text = ''
 
-    if not extracted_text.strip() or extracted_text.startswith('[PDF'):
-        # 파싱 실패 시 전체를 하나의 피드백으로 등록
-        fb = Feedback(
-            category_type='기타',
-            content=extracted_text.strip() or f'[PDF 업로드: {file.filename}]',
-            channel='PDF업로드',
-            feedback_date=date.today(),
-        )
-        db.session.add(fb)
-        db.session.commit()
-        flash(f'PDF 업로드 완료 (텍스트 추출 제한 — 1건 등록)', 'info')
-        return redirect(url_for('feedback'))
-
-    # 텍스트를 피드백 항목으로 파싱
-    # 더아이앤오 PDF 패턴: 보통 줄 단위 피드백, 구분자 기반 파싱 시도
-    lines = [l.strip() for l in extracted_text.split('\n') if l.strip()]
-    count = 0
-
-    # 패턴1: "날짜 | 분류 | 내용 | 채널" 탭/파이프 구분
-    import re
-    date_pattern = re.compile(r'(\d{4}[./-]\d{1,2}[./-]\d{1,2})')
-
-    # 헤더행 스킵 패턴
-    header_keywords = ['날짜', '분류', '내용', '채널', '고객', '번호', 'No', '#']
-
-    parsed_rows = []
-    for line in lines:
-        # 헤더행이면 스킵
-        if any(kw in line for kw in header_keywords) and len(line) < 80:
-            continue
-        # 구분자로 분리 시도 (탭, 파이프, 쉼표)
-        parts = None
-        for sep in ['\t', '|', ',']:
-            trial = [p.strip() for p in line.split(sep) if p.strip()]
-            if len(trial) >= 2:
-                parts = trial
-                break
-        if parts and len(parts) >= 2:
-            parsed_rows.append(parts)
-        elif len(line) > 10:
-            # 구분자 없는 긴 텍스트 → 내용으로만 등록
-            parsed_rows.append([line])
-
-    for parts in parsed_rows:
-        fb_date = date.today()
-        fb_category = '기타'
-        fb_content = ''
-        fb_channel = 'PDF업로드'
-        fb_customer = ''
-
-        if len(parts) >= 4:
-            # 날짜 | 분류 | 내용 | 채널
-            dm = date_pattern.search(parts[0])
-            if dm:
-                try:
-                    fb_date = date.fromisoformat(dm.group(1).replace('.', '-').replace('/', '-'))
-                except ValueError:
-                    pass
-            fb_category = parts[1] if parts[1] in ['컨텐츠이슈', '감사', '불만', '기타'] else '기타'
-            fb_content = parts[2]
-            fb_channel = parts[3] if len(parts) > 3 else 'PDF업로드'
-            fb_customer = parts[4] if len(parts) > 4 else ''
-        elif len(parts) >= 2:
-            dm = date_pattern.search(parts[0])
-            if dm:
-                try:
-                    fb_date = date.fromisoformat(dm.group(1).replace('.', '-').replace('/', '-'))
-                except ValueError:
-                    pass
-                fb_content = ' '.join(parts[1:])
-            else:
-                fb_content = ' '.join(parts)
-        else:
-            fb_content = parts[0]
-
-        if fb_content:
+        if not extracted_text.strip():
             fb = Feedback(
-                category_type=fb_category,
-                content=fb_content[:1000],
-                channel=fb_channel,
-                feedback_date=fb_date,
-                customer_ref=fb_customer,
+                category_type='기타',
+                content=f'[PDF 업로드: {file.filename} — 자동 파싱 실패, 수동 확인 필요]',
+                channel='PDF업로드',
+                feedback_date=date.today(),
             )
             db.session.add(fb)
-            count += 1
+            count = 1
+        else:
+            # 줄 단위 폴백
+            lines = [l.strip() for l in extracted_text.split('\n') if l.strip() and len(l.strip()) > 10]
+            skip_kw = ['접수일', '상담 건 수', '상담 분류', '단위', '고객의 소리 특이', '통계 상세', '접수 내용']
+            for line in lines:
+                if any(kw in line for kw in skip_kw):
+                    continue
+                fb = Feedback(
+                    category_type='기타',
+                    content=line[:1000],
+                    channel='PDF업로드',
+                    feedback_date=date.today(),
+                )
+                db.session.add(fb)
+                count += 1
 
     db.session.commit()
     flash(f'PDF에서 {count}건의 피드백을 추출하여 등록했습니다.', 'success')
