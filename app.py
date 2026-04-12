@@ -2606,10 +2606,21 @@ def duplicate_item(item_id):
         new_ci = ChecklistItem(item_id=item.id, label=ci.label, category=ci.category,
                                sort_order=ci.sort_order, checked=False)
         db.session.add(new_ci)
+    # 업무(Task)도 복제 — 원본 업무의 단계/날짜/우선순위를 기반으로 새 업무 생성
+    src_tasks = Task.query.filter_by(item_id=src.id).order_by(Task.start_date).all()
+    task_count = 0
+    for st in src_tasks:
+        new_title = st.title.replace(src.name, new_name, 1) if src.name in st.title else f'{new_name} {st.stage}'
+        nt = Task(title=new_title, item_id=item.id, stage=st.stage, status='대기',
+                  start_date=st.start_date, due_date=st.due_date,
+                  assignee_id=st.assignee_id or current_user.id,
+                  priority=st.priority or '보통')
+        db.session.add(nt)
+        task_count += 1
     _audit('복제', 'item', item.id, new_name, f'원본: {src.name} (ID:{src.id})')
     _notify_related_and_admins(item, f'{current_user.name}님이 "{src.name}"을 복제하여 "{new_name}"을 등록했습니다.', url_for('items'), '상품등록')
     db.session.commit()
-    flash(f'"{new_name}" 상품이 복제되었습니다. (체크리스트 포함)', 'success')
+    flash(f'"{new_name}" 상품이 복제되었습니다. (체크리스트 + 업무 {task_count}건 포함)', 'success')
     return redirect(url_for('items'))
 
 # ──────────────────────────────────────────────
