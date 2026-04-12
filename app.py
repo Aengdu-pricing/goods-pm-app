@@ -2944,8 +2944,11 @@ def upload_feedback_pdf():
                 for tbl in tables:
                     if not tbl or len(tbl) < 2:
                         continue
-                    # 헤더행 찾기: '고객의 소리' 또는 '상담분류' 포함된 행
+                    # 헤더행 찾기: 컬럼이 3개 이상이고 '고객의 소리' 또는 '상담분류' 포함된 행
                     header = tbl[0]
+                    non_empty_cols = [c for c in header if c and c.strip()]
+                    if len(non_empty_cols) < 3:
+                        continue  # 통계 요약 테이블 등 1~2셀짜리는 스킵
                     header_str = ' '.join([str(c) for c in header if c])
                     if '고객' not in header_str and '상담' not in header_str:
                         continue
