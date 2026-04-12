@@ -2062,6 +2062,17 @@ def add_check_item(item_id):
     db.session.commit()
     return jsonify({'ok': True, 'id': ci.id, 'label': ci.label})
 
+@app.route('/checklist/delete-all/<int:item_id>', methods=['POST'])
+@login_required
+def delete_checklist_all(item_id):
+    """상품의 체크리스트 전체 삭제 (완료된 체크리스트 정리용)"""
+    item = Item.query.get_or_404(item_id)
+    cnt = ChecklistItem.query.filter_by(item_id=item_id).delete()
+    _audit('삭제', 'checklist', item_id, item.name, f'체크리스트 전체 삭제 ({cnt}건)')
+    db.session.commit()
+    flash(f'"{item.name}" 체크리스트가 삭제되었습니다. ({cnt}건)', 'success')
+    return redirect(url_for('checklist'))
+
 @app.route('/checklist/delete/<int:check_id>', methods=['POST'])
 @login_required
 def delete_check_item(check_id):

@@ -1579,9 +1579,13 @@
     <p style="font-size:12px;color:var(--text-light);margin-bottom:16px">상품별 제작 품질 점검 항목을 관리합니다. 체크리스트가 없으면 [자동 생성] 버튼으로 카테고리에 맞는 항목을 만들 수 있습니다.</p>
   </div>
 
+  {% set incomplete_checklists = items_checklists|selectattr('pct', 'lt', 100)|list %}
+  {% set complete_checklists = items_checklists|selectattr('pct', 'equalto', 100)|list %}
+
   {% if items_checklists %}
-  {% for ic in items_checklists %}
-  <div class="card" id="clCard{{ ic.item.id }}" style="border-left:4px solid {{ 'var(--green)' if ic.pct == 100 else 'var(--warn)' if ic.pct >= 50 else 'var(--brown-light)' }}">
+  {# ── 미완료 체크리스트 (항상 열림) ── #}
+  {% for ic in incomplete_checklists %}
+  <div class="card" id="clCard{{ ic.item.id }}" style="border-left:4px solid {{ 'var(--warn)' if ic.pct >= 50 else 'var(--brown-light)' }}">
     <!-- 상품 헤더 -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <div>
@@ -1591,9 +1595,9 @@
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <!-- 진행률 -->
-        <div id="clPct{{ ic.item.id }}" style="font-size:13px;font-weight:600;color:{{ 'var(--green)' if ic.pct == 100 else 'var(--brown)' }}">{{ ic.done }}/{{ ic.total }} ({{ ic.pct }}%)</div>
+        <div id="clPct{{ ic.item.id }}" style="font-size:13px;font-weight:600;color:var(--brown)">{{ ic.done }}/{{ ic.total }} ({{ ic.pct }}%)</div>
         <div style="width:80px;height:6px;background:#e8e4e0;border-radius:3px;overflow:hidden">
-          <div id="clBar{{ ic.item.id }}" style="width:{{ ic.pct }}%;height:100%;background:{{ 'var(--green)' if ic.pct == 100 else 'var(--green-light)' }};border-radius:3px;transition:width .3s"></div>
+          <div id="clBar{{ ic.item.id }}" style="width:{{ ic.pct }}%;height:100%;background:var(--green-light);border-radius:3px;transition:width .3s"></div>
         </div>
       </div>
     </div>
@@ -1647,6 +1651,45 @@
     {% endif %}
   </div>
   {% endfor %}
+
+  {# ── 완료된 체크리스트 (접혀서 표시) ── #}
+  {% if complete_checklists %}
+  <div class="card" style="border-left:4px solid var(--green);background:#f8fdf8">
+    <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="document.getElementById('completedCLSection').style.display=document.getElementById('completedCLSection').style.display==='none'?'block':'none';this.querySelector('.cl-toggle-arrow').textContent=document.getElementById('completedCLSection').style.display==='none'?'▶':'▼'">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="cl-toggle-arrow" style="font-size:11px;color:#999">▶</span>
+        <span style="font-weight:600;color:var(--green);font-size:14px">✅ 완료된 체크리스트</span>
+        <span style="font-size:12px;color:#999">({{ complete_checklists|length }}건)</span>
+      </div>
+    </div>
+    <div id="completedCLSection" style="display:none;margin-top:12px">
+      {% for ic in complete_checklists %}
+      <div id="clCard{{ ic.item.id }}" style="padding:10px 12px;margin-bottom:8px;background:#fff;border-radius:8px;border:1px solid #e0eee0">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-weight:600;color:#666;font-size:13px">{{ ic.item.name }}</span>
+            <span class="status-badge plan" style="font-size:10px">{{ ic.item.status }}</span>
+            {% if ic.cat_name %}<span style="font-size:10px;color:#aaa">{{ ic.cat_name }}</span>{% endif %}
+            <span style="font-size:11px;color:var(--green);font-weight:600">{{ ic.done }}/{{ ic.total }} (100%)</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button onclick="this.parentElement.parentElement.nextElementSibling.style.display=this.parentElement.parentElement.nextElementSibling.style.display==='none'?'block':'none'" style="background:none;border:1px solid #ddd;border-radius:4px;padding:2px 8px;font-size:11px;color:#888;cursor:pointer" title="항목 보기">상세</button>
+            <form method="POST" action="{{ url_for('delete_checklist_all', item_id=ic.item.id) }}" style="display:inline" onsubmit="return confirm('「{{ ic.item.name }}」의 체크리스트를 삭제하시겠습니까?\n(상품과 업무는 유지됩니다)')">
+              <button type="submit" style="background:none;border:1px solid #e8c0c0;border-radius:4px;padding:2px 8px;font-size:11px;color:#c66;cursor:pointer" title="체크리스트 삭제">삭제</button>
+            </form>
+          </div>
+        </div>
+        <div style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid #eee">
+          {% for c in ic.checks %}
+          <div style="font-size:12px;color:#aaa;padding:2px 0;text-decoration:line-through">✓ {{ c.label }} <span style="font-size:10px">{{ c.category }}</span></div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   {% else %}
   <div class="card">
     <div class="empty-state">
