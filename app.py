@@ -1411,6 +1411,29 @@ def _build_month_data(year, month, today):
         'bars': bars, 'max_lanes': max_lanes,
     }
 
+@app.route('/tasks/<int:task_id>/delete', methods=['POST'])
+@login_required
+def delete_task(task_id):
+    """업무 삭제 (담당자 또는 관리자만)"""
+    task = Task.query.get_or_404(task_id)
+    if task.assignee_id != current_user.id and not is_admin():
+        flash('업무 삭제는 담당자 또는 관리자만 가능합니다.', 'error')
+        return redirect(request.referrer or url_for('tasks'))
+    title = task.title
+    # 관련 코멘트 삭제
+    Comment.query.filter_by(task_id=task_id).delete()
+    # 관련 첨부파일 삭제
+    for att in Attachment.query.filter_by(task_id=task_id).all():
+        filepath = os.path.join(UPLOAD_DIR, att.filename)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        db.session.delete(att)
+    db.session.delete(task)
+    _audit('삭제', 'task', task_id, title)
+    db.session.commit()
+    flash(f'"{title}" 업무가 삭제되었습니다.', 'success')
+    return redirect(request.referrer or url_for('tasks'))
+
 @app.route('/calendar')
 @login_required
 def calendar():
@@ -1447,9 +1470,21 @@ def calendar():
     m1['max_lanes'] = unified_lanes
     m2['max_lanes'] = unified_lanes
 
-    # 파이프라인 & 전체 업무 리스트 (두 달 범위)
+    # 파이프라인 & 전체 업무 리스트 (진행중/대기 우선, 완료 하단)
     items_with_dates = Item.query.filter(Item.target_date != None).all()
-    tasks_all = Task.query.filter(Task.due_date != None).order_by(Task.start_date).all()
+    from sqlalchemy import case as sa_case
+    status_order = sa_case(
+        (Task.status == '진행중', 0),
+        (Task.status == '대기', 1),
+        else_=2
+    )
+    task_page = int(request.args.get('tp', 1))
+    task_per_page = 30
+    tasks_query = Task.query.filter(Task.due_date != None).order_by(status_order, Task.start_date)
+    tasks_total = tasks_query.count()
+    tasks_pages = max(1, (tasks_total + task_per_page - 1) // task_per_page)
+    task_page = max(1, min(task_page, tasks_pages))
+    tasks_all = tasks_query.offset((task_page - 1) * task_per_page).limit(task_per_page).all()
 
     # 품목별 색상 범례 (두 달에 걸쳐 표시된 품목만)
     seen_items = {}
@@ -1474,7 +1509,8 @@ def calendar():
                            prev_y=prev_y, prev_m=prev_m, next_y=next_y, next_m=next_m,
                            m1=m1, m2=m2,
                            items_with_dates=items_with_dates, tasks_all=tasks_all,
-                           item_legend=item_legend)
+                           item_legend=item_legend,
+                           task_page=task_page, tasks_pages=tasks_pages, tasks_total=tasks_total)
 
 @app.route('/inventory')
 @login_required

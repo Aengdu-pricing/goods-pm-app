@@ -1051,12 +1051,15 @@
   </div>
   {% endif %}
 
-  {# ── 전체 업무 일정 리스트 ── #}
+  {# ── 전체 업무 일정 리스트 (페이지네이션) ── #}
   {% if tasks_all %}
   <div class="card" style="margin-top:16px">
-    <h3>📋 전체 업무 일정</h3>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h3 style="margin:0">📋 전체 업무 일정 <span style="font-size:12px;color:var(--text-light);font-weight:400">({{ tasks_total }}건)</span></h3>
+      <span style="font-size:11px;color:var(--text-light)">{{ task_page }} / {{ tasks_pages }} 페이지</span>
+    </div>
     <table class="data-table">
-      <thead><tr><th>상품</th><th>단계</th><th>시작</th><th>마감</th><th>담당자</th><th>상태</th></tr></thead>
+      <thead><tr><th>상품</th><th>단계</th><th>시작</th><th>마감</th><th>담당자</th><th>상태</th><th style="width:40px"></th></tr></thead>
       <tbody>
         {% for t in tasks_all %}
         <tr style="{{ 'opacity:.5' if t.status=='완료' else '' }}">
@@ -1066,10 +1069,37 @@
           <td>{{ t.due_date.strftime('%m/%d') if t.due_date else '-' }}</td>
           <td>{{ t.assignee.name if t.assignee else '-' }}</td>
           <td><span class="status-badge {{ 'active' if t.status=='진행중' else 'plan' if t.status=='대기' else 'done' if t.status=='완료' else 'progress' }}">{{ t.status }}</span></td>
+          <td>
+            {% if t.status == '완료' or t.assignee_id == current_user.id or current_user.role in ['소장','편집장','행정팀장'] %}
+            <form method="POST" action="{{ url_for('delete_task', task_id=t.id) }}" style="display:inline" onsubmit="return confirm('「{{ t.item.name if t.item else t.title }}」 {{ t.stage }} 업무를 삭제하시겠습니까?')">
+              <button type="submit" style="background:none;border:none;cursor:pointer;font-size:12px;color:#ccc;padding:2px" title="삭제">🗑</button>
+            </form>
+            {% endif %}
+          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
+    {# 페이지네이션 #}
+    {% if tasks_pages > 1 %}
+    <div style="display:flex;justify-content:center;gap:4px;margin-top:12px">
+      {% if task_page > 1 %}
+      <a href="{{ url_for('calendar', y=m1.year, m=m1.month, tp=task_page-1) }}" style="padding:4px 10px;font-size:12px;border:1px solid var(--border);border-radius:4px;color:var(--text-mid);text-decoration:none">← 이전</a>
+      {% endif %}
+      {% for p in range(1, tasks_pages+1) %}
+        {% if p == task_page %}
+        <span style="padding:4px 10px;font-size:12px;background:var(--brown);color:#fff;border-radius:4px">{{ p }}</span>
+        {% elif p <= 3 or p >= tasks_pages-2 or (p >= task_page-1 and p <= task_page+1) %}
+        <a href="{{ url_for('calendar', y=m1.year, m=m1.month, tp=p) }}" style="padding:4px 10px;font-size:12px;border:1px solid var(--border);border-radius:4px;color:var(--text-mid);text-decoration:none">{{ p }}</a>
+        {% elif p == 4 or p == tasks_pages-3 %}
+        <span style="padding:4px 6px;font-size:12px;color:var(--text-light)">…</span>
+        {% endif %}
+      {% endfor %}
+      {% if task_page < tasks_pages %}
+      <a href="{{ url_for('calendar', y=m1.year, m=m1.month, tp=task_page+1) }}" style="padding:4px 10px;font-size:12px;border:1px solid var(--border);border-radius:4px;color:var(--text-mid);text-decoration:none">다음 →</a>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
   {% endif %}
 
