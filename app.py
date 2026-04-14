@@ -704,6 +704,34 @@ def delete_item(item_id):
     flash(f'"{name}" 상품이 삭제되었습니다. (연결 업무 {task_count}건 포함)', 'success')
     return redirect(url_for('items'))
 
+@app.route('/api/items/bulk-delete', methods=['POST'])
+@login_required
+def bulk_delete_items():
+    """관리자 전용: 여러 상품 일괄 삭제 (keep_ids에 포함되지 않은 상품 삭제)"""
+    if not is_admin():
+        return jsonify({'error': '관리자만 사용 가능'}), 403
+    data = request.get_json()
+    keep_ids = set(data.get('keep_ids', []))
+    all_items = Item.query.all()
+    deleted = []
+    for item in all_items:
+        if item.id not in keep_ids:
+            name = item.name
+            task_count = Task.query.filter_by(item_id=item.id).count()
+            _audit('삭제', 'item', item.id, name, f'일괄삭제 - 연결 업무 {task_count}건')
+            Comment.query.filter(Comment.task_id.in_(
+                db.session.query(Task.id).filter_by(item_id=item.id)
+            )).delete(synchronize_session='fetch')
+            Task.query.filter_by(item_id=item.id).delete()
+            WeeklyCount.query.filter_by(item_id=item.id).delete()
+            InventoryLog.query.filter_by(item_id=item.id).delete()
+            ChecklistItem.query.filter_by(item_id=item.id).delete()
+            CostRecord.query.filter_by(item_id=item.id).delete()
+            db.session.delete(item)
+            deleted.append({'id': item.id, 'name': name})
+    db.session.commit()
+    return jsonify({'deleted': deleted, 'remaining': len(all_items) - len(deleted)})
+
 @app.route('/api/items/<int:item_id>')
 @login_required
 def get_item_json(item_id):
