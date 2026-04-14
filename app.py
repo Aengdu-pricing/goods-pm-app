@@ -681,24 +681,28 @@ def delete_item(item_id):
         return redirect(url_for('items'))
     name = item.name
     # 관련자에게 삭제 알림
-    _notify_related_and_admins(
-        item,
-        f'🗑️ "{name}" 상품이 {current_user.name}님에 의해 삭제되었습니다.',
-        url_for('items'),
-        '상품삭제',
-    )
+    try:
+        _notify_related_and_admins(
+            item,
+            f'🗑️ "{name}" 상품이 {current_user.name}님에 의해 삭제되었습니다.',
+            url_for('items'),
+            '상품삭제',
+        )
+    except Exception:
+        pass  # 알림 실패해도 삭제는 진행
     # Audit Log
     task_count = Task.query.filter_by(item_id=item_id).count()
     _audit('삭제', 'item', item_id, name, f'연결 업무 {task_count}건 함께 삭제')
     # 연결된 데이터 삭제
-    Comment.query.filter(Comment.task_id.in_(
-        db.session.query(Task.id).filter_by(item_id=item_id)
-    )).delete(synchronize_session='fetch')
+    task_ids = [t.id for t in Task.query.filter_by(item_id=item_id).all()]
+    if task_ids:
+        Comment.query.filter(Comment.task_id.in_(task_ids)).delete(synchronize_session='fetch')
     Task.query.filter_by(item_id=item_id).delete()
     WeeklyCount.query.filter_by(item_id=item_id).delete()
     InventoryLog.query.filter_by(item_id=item_id).delete()
     ChecklistItem.query.filter_by(item_id=item_id).delete()
     CostRecord.query.filter_by(item_id=item_id).delete()
+    Notification.query.filter(Notification.message.contains(name)).delete(synchronize_session='fetch')
     db.session.delete(item)
     db.session.commit()
     flash(f'"{name}" 상품이 삭제되었습니다. (연결 업무 {task_count}건 포함)', 'success')
