@@ -714,23 +714,34 @@ def bulk_delete_items():
     keep_ids = set(data.get('keep_ids', []))
     all_items = Item.query.all()
     deleted = []
+    errors = []
     for item in all_items:
         if item.id not in keep_ids:
             name = item.name
-            task_count = Task.query.filter_by(item_id=item.id).count()
-            _audit('삭제', 'item', item.id, name, f'일괄삭제 - 연결 업무 {task_count}건')
-            Comment.query.filter(Comment.task_id.in_(
-                db.session.query(Task.id).filter_by(item_id=item.id)
-            )).delete(synchronize_session='fetch')
-            Task.query.filter_by(item_id=item.id).delete()
-            WeeklyCount.query.filter_by(item_id=item.id).delete()
-            InventoryLog.query.filter_by(item_id=item.id).delete()
-            ChecklistItem.query.filter_by(item_id=item.id).delete()
-            CostRecord.query.filter_by(item_id=item.id).delete()
-            db.session.delete(item)
-            deleted.append({'id': item.id, 'name': name})
-    db.session.commit()
-    return jsonify({'deleted': deleted, 'remaining': len(all_items) - len(deleted)})
+            item_id = item.id
+            try:
+                # 알림 삭제 (FK 참조 방지)
+                Notification.query.filter(Notification.message.contains(name)).delete(synchronize_session='fetch')
+                task_ids = [t.id for t in Task.query.filter_by(item_id=item_id).all()]
+                if task_ids:
+                    Comment.query.filter(Comment.task_id.in_(task_ids)).delete(synchronize_session='fetch')
+                Task.query.filter_by(item_id=item_id).delete()
+                WeeklyCount.query.filter_by(item_id=item_id).delete()
+                InventoryLog.query.filter_by(item_id=item_id).delete()
+                ChecklistItem.query.filter_by(item_id=item_id).delete()
+                CostRecord.query.filter_by(item_id=item_id).delete()
+                db.session.delete(item)
+                db.session.flush()
+                deleted.append({'id': item_id, 'name': name})
+            except Exception as e:
+                db.session.rollback()
+                errors.append({'id': item_id, 'name': name, 'error': str(e)})
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e), 'deleted_before_error': deleted}), 500
+    return jsonify({'deleted': deleted, 'errors': errors, 'remaining': len(all_items) - len(deleted)})
 
 @app.route('/api/items/<int:item_id>')
 @login_required
