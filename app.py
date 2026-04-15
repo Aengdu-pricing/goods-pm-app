@@ -708,6 +708,33 @@ def delete_item(item_id):
     flash(f'"{name}" 상품이 삭제되었습니다. (연결 업무 {task_count}건 포함)', 'success')
     return redirect(url_for('items'))
 
+@app.route('/api/items/<int:item_id>/force-delete', methods=['POST'])
+@login_required
+def force_delete_item(item_id):
+    """관리자 전용: 강제 삭제 — 에러 상세 반환"""
+    if not is_admin():
+        return jsonify({'error': '관리자만 사용 가능'}), 403
+    item = Item.query.get_or_404(item_id)
+    name = item.name
+    try:
+        task_ids = [t.id for t in Task.query.filter_by(item_id=item_id).all()]
+        if task_ids:
+            Attachment.query.filter(Attachment.task_id.in_(task_ids)).delete(synchronize_session='fetch')
+            Comment.query.filter(Comment.task_id.in_(task_ids)).delete(synchronize_session='fetch')
+        Task.query.filter_by(item_id=item_id).delete()
+        WeeklyCount.query.filter_by(item_id=item_id).delete()
+        InventoryLog.query.filter_by(item_id=item_id).delete()
+        ChecklistItem.query.filter_by(item_id=item_id).delete()
+        CostRecord.query.filter_by(item_id=item_id).delete()
+        Notification.query.filter(Notification.message.contains(name)).delete(synchronize_session='fetch')
+        db.session.delete(item)
+        db.session.commit()
+        return jsonify({'ok': True, 'deleted': name})
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        return jsonify({'ok': False, 'error': str(e), 'trace': traceback.format_exc()}), 500
+
 @app.route('/api/items/bulk-delete', methods=['POST'])
 @login_required
 def bulk_delete_items():
