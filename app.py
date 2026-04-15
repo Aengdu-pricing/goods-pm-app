@@ -2600,8 +2600,9 @@ def get_comments(task_id):
         comments = Comment.query.filter_by(task_id=task_id).order_by(Comment.created_at.asc()).all()
     # 태스크 id → stage 매핑
     task_stage_map = {t.id: t.stage for t in Task.query.filter(Task.id.in_([c.task_id for c in comments])).all()}
-    return jsonify({'ok': True, 'comments': [
-        {'id': c.id, 'author': c.author.name if c.author else '?', 'author_role': c.author.role if c.author else '',
+    return jsonify({'ok': True, 'current_user_id': current_user.id, 'comments': [
+        {'id': c.id, 'author': c.author.name if c.author else '?', 'author_id': c.author_id,
+         'author_role': c.author.role if c.author else '',
          'content': c.content, 'created_at': c.created_at.strftime('%m/%d %H:%M') if c.created_at else '',
          'stage': task_stage_map.get(c.task_id, '')}
         for c in comments
@@ -2628,10 +2629,23 @@ def add_comment(task_id):
     _audit('코멘트', 'task', task.id, item_name, content[:100])
     db.session.commit()
     return jsonify({'ok': True, 'comment': {
-        'id': c.id, 'author': current_user.name, 'author_role': current_user.role,
+        'id': c.id, 'author': current_user.name, 'author_id': current_user.id,
+        'author_role': current_user.role,
         'content': c.content, 'created_at': c.created_at.strftime('%m/%d %H:%M') if c.created_at else '방금',
         'stage': task.stage or ''
     }})
+
+@app.route('/comments/<int:comment_id>/delete', methods=['POST'])
+@login_required
+def delete_comment(comment_id):
+    """코멘트 삭제 — 본인이 쓴 코멘트만 삭제 가능"""
+    c = Comment.query.get_or_404(comment_id)
+    if c.author_id != current_user.id and not is_admin():
+        return jsonify({'ok': False, 'error': '본인이 작성한 코멘트만 삭제할 수 있습니다.'})
+    _audit('삭제', 'comment', comment_id, c.content[:50], f'task_id={c.task_id}')
+    db.session.delete(c)
+    db.session.commit()
+    return jsonify({'ok': True})
 
 # ──────────────────────────────────────────────
 # 상품 복제

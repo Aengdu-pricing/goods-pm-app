@@ -2617,17 +2617,34 @@ function editCheckItem(checkId, btn) {
 
 var STAGE_COLORS = {'기획':'#5C6BC0','디자인':'#AB47BC','컨펌/견적':'#FF7043','제작':'#26A69A','입고':'#66BB6A'};
 
+var _currentUserId = {{ current_user.id }};
 function renderComment(c) {
   var stageTag = '';
   if (c.stage) {
     var sc = STAGE_COLORS[c.stage] || '#888';
     stageTag = '<span style="background:' + sc + ';color:#fff;font-size:8px;padding:0 4px;border-radius:3px;margin-right:4px">' + c.stage + '</span>';
   }
-  return '<div style="background:#fafafa;border-radius:4px;padding:4px 6px;margin-bottom:3px">' +
-    stageTag +
+  var delBtn = '';
+  if (c.author_id === _currentUserId) {
+    delBtn = '<button onclick="deleteComment(' + c.id + ', this)" style="background:none;border:none;color:#ccc;font-size:10px;cursor:pointer;float:right;padding:0" title="삭제">✕</button>';
+  }
+  return '<div id="comment-' + c.id + '" style="background:#fafafa;border-radius:4px;padding:4px 6px;margin-bottom:3px">' +
+    delBtn + stageTag +
     '<span style="font-weight:600;color:var(--brown)">' + c.author + '</span>' +
     '<span style="color:#aaa;font-size:9px;margin-left:4px">' + c.created_at + '</span>' +
     '<div style="margin-top:1px">' + c.content + '</div></div>';
+}
+function deleteComment(commentId, btn) {
+  if (!confirm('이 코멘트를 삭제하시겠습니까?')) return;
+  fetch('/comments/' + commentId + '/delete', { method: 'POST' })
+    .then(function(r){ return r.json(); }).then(function(d) {
+      if (d.ok) {
+        var el = document.getElementById('comment-' + commentId);
+        if (el) el.remove();
+      } else {
+        alert(d.error || '삭제 실패');
+      }
+    });
 }
 
 function toggleComments(taskId) {
