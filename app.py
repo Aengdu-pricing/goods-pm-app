@@ -696,6 +696,12 @@ def delete_item(item_id):
     # 연결된 데이터 삭제
     task_ids = [t.id for t in Task.query.filter_by(item_id=item_id).all()]
     if task_ids:
+        # 첨부파일 → 알림 FK 해제 → 첨부파일 삭제
+        att_ids = [a.id for a in Attachment.query.filter(Attachment.task_id.in_(task_ids)).all()]
+        if att_ids:
+            Notification.query.filter(Notification.attachment_id.in_(att_ids)).update(
+                {Notification.attachment_id: None}, synchronize_session='fetch')
+            Attachment.query.filter(Attachment.id.in_(att_ids)).delete(synchronize_session='fetch')
         Comment.query.filter(Comment.task_id.in_(task_ids)).delete(synchronize_session='fetch')
     Task.query.filter_by(item_id=item_id).delete()
     WeeklyCount.query.filter_by(item_id=item_id).delete()
@@ -719,7 +725,12 @@ def force_delete_item(item_id):
     try:
         task_ids = [t.id for t in Task.query.filter_by(item_id=item_id).all()]
         if task_ids:
-            Attachment.query.filter(Attachment.task_id.in_(task_ids)).delete(synchronize_session='fetch')
+            # 첨부파일 ID 수집 → 알림의 attachment_id 참조 해제 → 첨부파일 삭제
+            att_ids = [a.id for a in Attachment.query.filter(Attachment.task_id.in_(task_ids)).all()]
+            if att_ids:
+                Notification.query.filter(Notification.attachment_id.in_(att_ids)).update(
+                    {Notification.attachment_id: None}, synchronize_session='fetch')
+                Attachment.query.filter(Attachment.id.in_(att_ids)).delete(synchronize_session='fetch')
             Comment.query.filter(Comment.task_id.in_(task_ids)).delete(synchronize_session='fetch')
         Task.query.filter_by(item_id=item_id).delete()
         WeeklyCount.query.filter_by(item_id=item_id).delete()
@@ -1492,7 +1503,11 @@ def delete_task(task_id):
     title = task.title
     # 관련 코멘트 삭제
     Comment.query.filter_by(task_id=task_id).delete()
-    # 관련 첨부파일 삭제
+    # 관련 첨부파일 삭제 (알림 FK 해제 후)
+    att_ids = [a.id for a in Attachment.query.filter_by(task_id=task_id).all()]
+    if att_ids:
+        Notification.query.filter(Notification.attachment_id.in_(att_ids)).update(
+            {Notification.attachment_id: None}, synchronize_session='fetch')
     for att in Attachment.query.filter_by(task_id=task_id).all():
         filepath = os.path.join(UPLOAD_DIR, att.filename)
         if os.path.exists(filepath):
