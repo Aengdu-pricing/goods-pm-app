@@ -802,6 +802,22 @@ def get_item_json(item_id):
         'sale_url_positive': item.sale_url_positive or '',
     })
 
+@app.route('/tasks/<int:task_id>/dates', methods=['POST'])
+@login_required
+def update_task_dates(task_id):
+    """업무 시작일/마감일 수정 (관리자 또는 담당자)"""
+    task = Task.query.get_or_404(task_id)
+    if task.assignee_id != current_user.id and not is_admin():
+        return jsonify({'ok': False, 'error': '담당자 또는 관리자만 수정 가능합니다.'})
+    data = request.get_json() or request.form
+    if data.get('start_date'):
+        task.start_date = date.fromisoformat(data['start_date'])
+    if data.get('due_date'):
+        task.due_date = date.fromisoformat(data['due_date'])
+    _audit('수정', 'task', task_id, task.title, f'날짜변경 → {task.start_date} ~ {task.due_date}')
+    db.session.commit()
+    return jsonify({'ok': True})
+
 @app.route('/tasks/<int:task_id>/status', methods=['POST'])
 @login_required
 def update_task_status(task_id):
