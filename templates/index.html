@@ -1218,14 +1218,23 @@
         </div>
         <button type="submit" class="btn-primary" style="margin-bottom:14px">확정 등록</button>
       </form>
-      <!-- PDF 업로드 -->
-      <form method="POST" action="{{ url_for('upload_inventory_pdf') }}" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:flex-end;padding:8px 12px;background:#f8f9fa;border-radius:10px;border:1px dashed var(--border)">
-        <div class="form-group" style="margin-bottom:0">
-          <label style="font-size:12px;color:#888">📄 PDF로 일괄 입력</label>
-          <input type="file" name="pdf_file" accept=".pdf" required style="font-size:12px;max-width:200px">
-        </div>
-        <button type="submit" class="btn-secondary" style="margin-bottom:2px;white-space:nowrap">PDF 업로드</button>
-      </form>
+      <!-- 파일 업로드 (엑셀 / PDF) -->
+      <div style="display:flex;gap:8px;flex-direction:column;padding:8px 12px;background:#f8f9fa;border-radius:10px;border:1px dashed var(--border)">
+        <form method="POST" action="{{ url_for('upload_inventory_excel') }}" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:flex-end">
+          <div class="form-group" style="margin-bottom:0">
+            <label style="font-size:12px;color:#888">📊 엑셀로 일괄 입력</label>
+            <input type="file" name="excel_file" accept=".xlsx,.xls,.csv" required style="font-size:12px;max-width:200px">
+          </div>
+          <button type="submit" class="btn-secondary" style="margin-bottom:2px;white-space:nowrap">엑셀 업로드</button>
+        </form>
+        <form method="POST" action="{{ url_for('upload_inventory_pdf') }}" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:flex-end">
+          <div class="form-group" style="margin-bottom:0">
+            <label style="font-size:12px;color:#888">📄 PDF로 일괄 입력</label>
+            <input type="file" name="pdf_file" accept=".pdf" required style="font-size:12px;max-width:200px">
+          </div>
+          <button type="submit" class="btn-secondary" style="margin-bottom:2px;white-space:nowrap">PDF 업로드</button>
+        </form>
+      </div>
     </div>
   </div>
 
@@ -1302,10 +1311,10 @@
   {% endfor %}
   {% endif %}
 
-  <!-- ═══ INVENTORY PREVIEW (PDF 파싱 결과) ═══ -->
+  <!-- ═══ INVENTORY PREVIEW (파일 파싱 결과) ═══ -->
   {% elif page == 'inventory_preview' %}
   <div class="card" style="border-left:4px solid var(--green)">
-    <h3>📄 PDF 재고 데이터 미리보기</h3>
+    <h3>📋 재고 데이터 미리보기</h3>
     <p style="font-size:13px;color:#666;margin-bottom:16px">
       <strong>{{ pdf_filename }}</strong>에서 추출한 데이터입니다. 수량을 확인/수정한 후 "확정 저장"을 눌러주세요.
     </p>

@@ -1791,6 +1791,115 @@ def upload_inventory_pdf():
                            all_items=Item.query.order_by(Item.name).all(),
                            pdf_filename=file.filename)
 
+@app.route('/inventory/upload-excel', methods=['POST'])
+@login_required
+def upload_inventory_excel():
+    """재고 엑셀 업로드 → pandas 파싱 → 미리보기"""
+    file = request.files.get('excel_file')
+    if not file or not file.filename:
+        flash('엑셀 파일을 선택해주세요.', 'error')
+        return redirect(url_for('inventory'))
+    ext = file.filename.lower().rsplit('.', 1)[-1] if '.' in file.filename else ''
+    if ext not in ('xlsx', 'xls', 'csv'):
+        flash('엑셀 파일(.xlsx, .xls, .csv)만 업로드 가능합니다.', 'error')
+        return redirect(url_for('inventory'))
+
+    safe_name = f"inventory_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{secure_filename(file.filename)}"
+    filepath = os.path.join(UPLOAD_DIR, safe_name)
+    file.save(filepath)
+
+    import re
+    try:
+        import pandas as pd
+        if ext == 'csv':
+            df = pd.read_csv(filepath)
+        else:
+            df = pd.read_excel(filepath)
+    except Exception as e:
+        flash(f'엑셀 파싱 오류: {str(e)}', 'error')
+        return redirect(url_for('inventory'))
+
+    # 컬럼명 정규화 (공백 제거, 소문자)
+    df.columns = [str(c).strip() for c in df.columns]
+    col_map = {c.lower().replace(' ', ''): c for c in df.columns}
+
+    # 품목코드 컬럼 찾기
+    code_col = None
+    for key in ['품목코드', '코드', 'code', 'sku', '품번']:
+        if key in col_map:
+            code_col = col_map[key]
+            break
+
+    # 품목명 컬럼 찾기
+    name_col = None
+    for key in ['품목명', '상품명', '품명', '이름', 'name', '제품명']:
+        if key in col_map:
+            name_col = col_map[key]
+            break
+
+    # 재고수량 컬럼 찾기
+    qty_col = None
+    for key in ['재고수량', '현재고', '재고', '잔여수량', '수량', 'stock', 'qty', '기말재고']:
+        if key in col_map:
+            qty_col = col_map[key]
+            break
+
+    if not qty_col:
+        flash('엑셀에서 재고수량 컬럼을 찾지 못했습니다. (재고수량/현재고/재고/수량 등의 컬럼명이 필요합니다)', 'error')
+        return redirect(url_for('inventory'))
+
+    # DB 상품 매칭
+    all_items = Item.query.all()
+    code_item_map = {}  # sku → item
+    name_item_map = {}  # 정규화이름 → item
+    for it in all_items:
+        if it.sku:
+            code_item_map[it.sku.strip().upper()] = it
+        key = re.sub(r'\s+', '', it.name.lower())
+        name_item_map[key] = it
+
+    parsed = []
+    for _, row in df.iterrows():
+        # 수량 파싱
+        raw_qty = row.get(qty_col)
+        try:
+            qty = int(float(str(raw_qty).replace(',', ''))) if pd.notna(raw_qty) else 0
+        except (ValueError, TypeError):
+            qty = 0
+
+        excel_name = str(row.get(name_col, '')).strip() if name_col else ''
+        excel_code = str(row.get(code_col, '')).strip().upper() if code_col else ''
+
+        # 매칭: 품목코드 우선 → 이름 매칭
+        matched_item = None
+        if excel_code:
+            matched_item = code_item_map.get(excel_code)
+        if not matched_item and excel_name:
+            norm = re.sub(r'\s+', '', excel_name.lower())
+            matched_item = name_item_map.get(norm)
+            if not matched_item:
+                for key, it in name_item_map.items():
+                    if norm in key or key in norm:
+                        matched_item = it
+                        break
+
+        parsed.append({
+            'pdf_name': excel_name or excel_code,
+            'item_id': matched_item.id if matched_item else None,
+            'item_name': matched_item.name if matched_item else '',
+            'qty': qty,
+            'prev_qty': matched_item.current_stock if matched_item else 0,
+        })
+
+    if not parsed:
+        flash('엑셀에서 재고 데이터를 인식하지 못했습니다.', 'error')
+        return redirect(url_for('inventory'))
+
+    return render_template('index.html', page='inventory_preview',
+                           parsed_data=parsed,
+                           all_items=Item.query.order_by(Item.name).all(),
+                           pdf_filename=file.filename)
+
 @app.route('/inventory/confirm-pdf', methods=['POST'])
 @login_required
 def confirm_inventory_pdf():
