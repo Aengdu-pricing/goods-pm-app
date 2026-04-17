@@ -719,7 +719,7 @@
     <!-- Header -->
     <div class="mobile-header">
         <div>
-            <div class="mobile-header-title" id="headerTitle">대시보드</div>
+            <div class="mobile-header-title" id="headerTitle">{% if page == 'tasks' %}업무{% elif page == 'inventory' %}재고{% elif page == 'items' %}상품{% else %}대시보드{% endif %}</div>
             <div class="mobile-header-date" id="headerDate">{{ today.strftime('%m월 %d일 (%A)') }}</div>
         </div>
         <div class="mobile-header-avatar" title="{{ current_user.name }}">{{ current_user.name[0] }}</div>
@@ -728,7 +728,7 @@
     <!-- Content -->
     <div class="mobile-container">
         <!-- DASHBOARD PAGE -->
-        <div class="page-content active" id="dashboard-page">
+        <div class="page-content {% if page == 'dashboard' %}active{% endif %}" id="dashboard-page">
             <div class="pull-refresh-hint">⬇️ 새로고침하려면 위에서 아래로 끌어내세요</div>
 
             <!-- Greeting -->
@@ -878,7 +878,7 @@
         </div>
 
         <!-- TASKS PAGE -->
-        <div class="page-content" id="tasks-page">
+        <div class="page-content {% if page == 'tasks' %}active{% endif %}" id="tasks-page">
             <!-- Filter Toggle -->
             <div class="filter-toggle">
                 <button class="toggle-btn active" onclick="filterTasks('all')">전체</button>
@@ -989,7 +989,7 @@
         </div>
 
         <!-- INVENTORY PAGE -->
-        <div class="page-content" id="inventory-page">
+        <div class="page-content {% if page == 'inventory' %}active{% endif %}" id="inventory-page">
             <!-- Stock Summary -->
             <div class="summary-grid">
                 <div class="summary-card">
@@ -1104,7 +1104,7 @@
         </div>
 
         <!-- ITEMS PAGE -->
-        <div class="page-content" id="items-page">
+        <div class="page-content {% if page == 'items' %}active{% endif %}" id="items-page">
             <!-- Search Bar -->
             <div class="search-box">
                 <span class="search-icon">🔍</span>
@@ -1201,19 +1201,19 @@
 
     <!-- Bottom Navigation -->
     <nav class="mobile-nav">
-        <a class="nav-item active" href="#" data-page="dashboard" onclick="navigatePage('dashboard', event)">
+        <a class="nav-item {% if page == 'dashboard' %}active{% endif %}" href="/m/">
             <div class="nav-icon">📊</div>
             <div>대시보드</div>
         </a>
-        <a class="nav-item" href="#" data-page="tasks" onclick="navigatePage('tasks', event)">
+        <a class="nav-item {% if page == 'tasks' %}active{% endif %}" href="/m/tasks">
             <div class="nav-icon">📋</div>
             <div>업무</div>
         </a>
-        <a class="nav-item" href="#" data-page="inventory" onclick="navigatePage('inventory', event)">
+        <a class="nav-item {% if page == 'inventory' %}active{% endif %}" href="/m/inventory">
             <div class="nav-icon">📦</div>
             <div>재고</div>
         </a>
-        <a class="nav-item" href="#" data-page="items" onclick="navigatePage('items', event)">
+        <a class="nav-item {% if page == 'items' %}active{% endif %}" href="/m/items">
             <div class="nav-icon">🏷</div>
             <div>상품</div>
         </a>
