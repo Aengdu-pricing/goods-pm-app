@@ -332,6 +332,9 @@ def m_items():
 @app.route('/')
 @login_required
 def dashboard():
+    # 모바일 기기 → /m/ 자동 리다이렉트
+    if _is_mobile():
+        return redirect('/m/')
     today = date.today()
 
     # ── 카드 1: 이번 달 마감 임박 ──
@@ -541,6 +544,8 @@ def dashboard():
 @app.route('/tasks')
 @login_required
 def tasks():
+    if _is_mobile():
+        return redirect('/m/tasks')
     """칸반: 5단계(기획→디자인→컨펌/견적→제작→입고) 기반
     규칙: 품목별로 현재 활성 단계(진행중)와 바로 다음 대기 단계만 표시.
     아직 차례가 안 된 미래 단계 태스크는 숨김.
@@ -618,6 +623,8 @@ def tasks():
 @app.route('/items')
 @login_required
 def items():
+    if _is_mobile():
+        return redirect('/m/items')
     line = request.args.get('line', '')
     cat = request.args.get('cat', '')
     q = request.args.get('q', '')
@@ -1764,6 +1771,8 @@ def calendar():
 @app.route('/inventory')
 @login_required
 def inventory():
+    if _is_mobile():
+        return redirect('/m/inventory')
     items_a = Item.query.filter(Item.line.contains('A'), Item.current_stock > 0).all()
     all_items = Item.query.order_by(Item.line, Item.name).all()
     weekly = WeeklyCount.query.order_by(WeeklyCount.counted_at.desc()).limit(20).all()
@@ -3059,6 +3068,10 @@ def has_perm(permission, role=None):
 
 def is_admin():
     return has_perm('manage_users')
+
+def _is_mobile():
+    ua = request.headers.get('User-Agent', '').lower()
+    return any(k in ua for k in ['iphone', 'android', 'mobile', 'ipod'])
 
 def get_roles_with_perm(permission):
     """특정 권한을 가진 역할 목록 반환"""
