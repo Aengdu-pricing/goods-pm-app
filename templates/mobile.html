@@ -751,7 +751,7 @@
 
             <div class="summary-grid">
                 <div class="summary-card">
-                    <div class="summary-value">{% if notifications_count %}{{ notifications_count }}{% else %}0{% endif %}</div>
+                    <div class="summary-value">{% if noti_count %}{{ noti_count }}{% else %}0{% endif %}</div>
                     <div class="summary-label">알림</div>
                 </div>
                 <div class="summary-card">
@@ -771,11 +771,11 @@
                 <div class="list-item" onclick="toggleDetail(this)">
                     <div class="list-item-main">
                         <div class="list-item-name">{{ task.item.name if task.item else 'N/A' }}</div>
-                        {% if task.status == 'waiting' %}
+                        {% if task.status == '대기' %}
                         <span class="badge badge-gray">대기</span>
-                        {% elif task.status == 'in_progress' %}
+                        {% elif task.status == '진행중' %}
                         <span class="badge badge-green">진행중</span>
-                        {% elif task.status == 'done' %}
+                        {% elif task.status == '완료' %}
                         <span class="badge badge-blue">완료</span>
                         {% endif %}
                     </div>
@@ -815,7 +815,7 @@
                     <span>⚠️ 저재고 알림</span>
                 </div>
                 {% for alert in low_stock_alerts %}
-                <div class="alert-item {% if alert.severity == 'critical' %}critical{% endif %}">
+                <div class="alert-item {% if alert.severity == '긴급' %}critical{% endif %}">
                     <div class="alert-title">{{ alert.item.name }}</div>
                     <div class="alert-info">
                         <span>주간 평균: {{ alert.weekly_avg }}개</span>
@@ -828,7 +828,7 @@
             {% endif %}
 
             <!-- Admin: Overdue Tasks -->
-            {% if has_perm('view_all_tasks') and overdue_tasks %}
+            {% if user_is_admin and overdue_tasks %}
             <div class="card">
                 <div class="card-header">
                     <span>🔴 마감 연체</span>
@@ -853,7 +853,7 @@
             {% endif %}
 
             <!-- Admin: Staff Overview -->
-            {% if has_perm('view_all_tasks') and staff_stats %}
+            {% if user_is_admin and staff_stats %}
             <div class="card">
                 <div class="card-header">팀 현황</div>
                 {% for stat in staff_stats %}
@@ -905,11 +905,11 @@
                     <div class="list-item task-item" data-task-id="{{ task.id }}" data-status="{{ task.status }}" onclick="toggleTaskDetail(this)">
                         <div class="list-item-main">
                             <div class="list-item-name">{{ task.item.name if task.item else 'N/A' }}</div>
-                            {% if task.status == 'waiting' %}
+                            {% if task.status == '대기' %}
                             <span class="badge badge-gray">대기</span>
-                            {% elif task.status == 'in_progress' %}
+                            {% elif task.status == '진행중' %}
                             <span class="badge badge-green">진행중</span>
-                            {% elif task.status == 'done' %}
+                            {% elif task.status == '완료' %}
                             <span class="badge badge-blue">완료</span>
                             {% endif %}
                         </div>
@@ -943,11 +943,11 @@
                             <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
                                 {% if task.status != 'done' %}
                                 <div class="btn-group btn-group-full">
-                                    {% if task.status == 'waiting' %}
-                                    <button class="btn btn-primary btn-small" onclick="updateTaskStatus({{ task.id }}, 'in_progress', event)">진행중</button>
+                                    {% if task.status == '대기' %}
+                                    <button class="btn btn-primary btn-small" onclick="updateTaskStatus({{ task.id }}, '진행중', event)">진행중</button>
                                     {% endif %}
-                                    {% if task.status == 'in_progress' %}
-                                    <button class="btn btn-primary btn-small" onclick="updateTaskStatus({{ task.id }}, 'done', event)">완료</button>
+                                    {% if task.status == '진행중' %}
+                                    <button class="btn btn-primary btn-small" onclick="updateTaskStatus({{ task.id }}, '완료', event)">완료</button>
                                     {% endif %}
                                 </div>
                                 {% endif %}
@@ -1145,16 +1145,18 @@
                         </div>
                     </div>
                     <div style="display: flex; gap: 8px; margin-top: 8px;">
-                        {% if item.status == 'selling' %}
+                        {% if item.status == '판매중' %}
                         <span class="badge badge-green">판매중</span>
-                        {% elif item.status == 'planning' %}
+                        {% elif item.status == '기획중' %}
                         <span class="badge badge-blue">기획중</span>
-                        {% elif item.status == 'consumed' %}
+                        {% elif item.status == '소진중' %}
                         <span class="badge badge-orange">소진중</span>
-                        {% elif item.status == 'done' %}
+                        {% elif item.status == '소진완료' %}
                         <span class="badge badge-gray">소진완료</span>
-                        {% elif item.status == 'discontinued' %}
+                        {% elif item.status == '단종' %}
                         <span class="badge" style="background: rgba(50, 50, 50, 0.1); color: #323232;">단종</span>
+                        {% else %}
+                        <span class="badge badge-gray">{{ item.status }}</span>
                         {% endif %}
                     </div>
                     {% set stock_pct = (item.current_stock / item.target_qty * 100) if item.target_qty > 0 else 0 %}
