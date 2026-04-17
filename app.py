@@ -179,6 +179,152 @@ def logout():
     return redirect(url_for('login'))
 
 # ═══════════════════════════════════════════
+# MOBILE PAGES
+# ═══════════════════════════════════════════
+@app.route('/m/')
+@login_required
+def m_dashboard():
+    today = date.today()
+    # 내 업무
+    if has_perm('view_all_tasks'):
+        my_tasks = Task.query.filter(Task.status != '완료').order_by(Task.due_date).limit(10).all()
+    else:
+        my_tasks = Task.query.filter_by(assignee_id=current_user.id).filter(Task.status != '완료').order_by(Task.due_date).limit(10).all()
+    # 재고 요약
+    selling_items = Item.query.filter(Item.status.in_(['판매중', '소진중'])).all()
+    selling_count = len(selling_items)
+    total_stock = sum(i.current_stock or 0 for i in selling_items)
+    total_target = sum(i.target_qty or 0 for i in selling_items)
+    avg_remain_pct = round(total_stock / total_target * 100, 1) if total_target > 0 else 0
+    # 재고 알림
+    low_stock_alerts = []
+    all_wks = WeeklyCount.query.order_by(WeeklyCount.counted_at.desc()).all()
+    wks_by_item = {}
+    for w in all_wks:
+        lst = wks_by_item.setdefault(w.item_id, [])
+        if len(lst) < 16:
+            lst.append(w)
+    for it in selling_items:
+        wks = wks_by_item.get(it.id, [])
+        weekly_avg = 0
+        if len(wks) >= 2:
+            consume_weeks = [w for w in wks if w.diff and w.diff < 0]
+            total_consumed = sum(abs(w.diff) for w in consume_weeks)
+            num_weeks = len(consume_weeks)
+            weekly_avg = round(total_consumed / num_weeks) if num_weeks > 0 else 0
+        if weekly_avg > 0 and it.current_stock:
+            remaining_weeks = it.current_stock // weekly_avg
+            if remaining_weeks <= 8:
+                low_stock_alerts.append({
+                    'item': it, 'remaining_weeks': remaining_weeks,
+                    'weekly_avg': weekly_avg,
+                    'severity': '긴급' if remaining_weeks <= 4 else '주의'
+                })
+    # 관리자: 지연 업무
+    overdue_tasks = []
+    staff_stats = []
+    if has_perm('view_all_tasks'):
+        overdue_tasks = Task.query.filter(Task.status != '완료', Task.due_date < today).order_by(Task.due_date).limit(10).all()
+    return render_template('mobile.html', page='dashboard',
+                           my_tasks=my_tasks, today=today,
+                           selling_count=selling_count, total_stock=total_stock,
+                           total_target=total_target, avg_remain_pct=avg_remain_pct,
+                           low_stock_alerts=low_stock_alerts,
+                           overdue_tasks=overdue_tasks, staff_stats=staff_stats)
+
+@app.route('/m/tasks')
+@login_required
+def m_tasks():
+    STAGES = ['기획', '디자인', '컨펌/견적', '제작', '입고']
+    assignee_filter = request.args.get('assignee', '')
+    if not assignee_filter and not has_perm('view_all_tasks') and 'assignee' not in request.args:
+        assignee_filter = 'me'
+    all_tasks_full = Task.query.order_by(Task.due_date).all()
+    if assignee_filter == 'me':
+        all_tasks = [t for t in all_tasks_full if t.assignee_id == current_user.id]
+    elif assignee_filter and assignee_filter.isdigit():
+        aid = int(assignee_filter)
+        all_tasks = [t for t in all_tasks_full if t.assignee_id == aid]
+    else:
+        all_tasks = list(all_tasks_full)
+    item_active_idx = {}
+    for t in all_tasks_full:
+        if t.item_id and t.status in ('진행중', '완료') and t.stage in STAGES:
+            idx = STAGES.index(t.stage)
+            prev = item_active_idx.get(t.item_id, -1)
+            if idx > prev:
+                item_active_idx[t.item_id] = idx
+    stage_tasks = {s: [] for s in STAGES}
+    done_tasks = []
+    for t in all_tasks:
+        if t.status == '완료':
+            done_tasks.append(t)
+            continue
+        if t.stage not in STAGES:
+            continue
+        if not t.item_id:
+            stage_tasks[t.stage].append(t)
+            continue
+        task_idx = STAGES.index(t.stage)
+        active_idx = item_active_idx.get(t.item_id, -1)
+        if t.status == '진행중':
+            stage_tasks[t.stage].append(t)
+        elif task_idx <= active_idx:
+            stage_tasks[t.stage].append(t)
+        elif task_idx == active_idx + 1 and t.status == '대기':
+            stage_tasks[t.stage].append(t)
+        elif active_idx == -1 and task_idx <= 0:
+            stage_tasks[t.stage].append(t)
+    users = User.query.order_by(User.role, User.name).all()
+    return render_template('mobile.html', page='tasks',
+                           stage_tasks=stage_tasks, done_tasks=done_tasks, STAGES=STAGES,
+                           today=date.today(), users=users, assignee_filter=assignee_filter)
+
+@app.route('/m/inventory')
+@login_required
+def m_inventory():
+    items_a = Item.query.filter(Item.line.contains('A'), Item.current_stock > 0).all()
+    all_items = Item.query.order_by(Item.line, Item.name).all()
+    weekly = WeeklyCount.query.order_by(WeeklyCount.counted_at.desc()).limit(20).all()
+    selling_items = Item.query.filter(Item.status.in_(['판매중', '소진중'])).order_by(Item.line, Item.name).all()
+    items_data = []
+    for it in selling_items:
+        wks = WeeklyCount.query.filter_by(item_id=it.id).order_by(WeeklyCount.counted_at.desc()).limit(16).all()
+        weekly_avg = 0
+        if len(wks) >= 2:
+            consume_weeks = [w for w in wks if w.diff and w.diff < 0]
+            total_consumed = sum(abs(w.diff) for w in consume_weeks)
+            num_weeks = len(consume_weeks)
+            weekly_avg = round(total_consumed / num_weeks) if num_weeks > 0 else 0
+        remaining_weeks = None
+        if weekly_avg > 0 and it.current_stock:
+            remaining_weeks = it.current_stock // weekly_avg
+        pct = (it.current_stock / it.target_qty * 100) if it.target_qty and it.current_stock else 0
+        items_data.append({
+            'item': it, 'weekly_avg': weekly_avg,
+            'remaining_weeks': remaining_weeks, 'pct': round(pct, 1),
+        })
+    return render_template('mobile.html', page='inventory', items_a=items_a,
+                           all_items=all_items, weekly_counts=weekly, items_data=items_data)
+
+@app.route('/m/items')
+@login_required
+def m_items():
+    line = request.args.get('line', '')
+    cat = request.args.get('cat', '')
+    q = request.args.get('q', '')
+    query = Item.query
+    if line:
+        query = query.filter(Item.line.contains(line))
+    if cat:
+        query = query.filter(Item.category_id == int(cat))
+    if q:
+        query = query.filter(Item.name.contains(q))
+    all_items = query.order_by(Item.created_at.desc()).all()
+    categories = Category.query.order_by(Category.name).all()
+    return render_template('mobile.html', page='items', items=all_items, categories=categories)
+
+# ═══════════════════════════════════════════
 # MAIN PAGES
 # ═══════════════════════════════════════════
 @app.route('/')

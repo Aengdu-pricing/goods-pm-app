@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="굿즈 워크스테이션">
+    <title>좋은생각 굿즈 워크스테이션</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --primary: #8D6E63;
+            --accent: #4CAF50;
+            --bg: #F5F0EB;
+            --surface: #FFFFFF;
+            --text-primary: #2C2C2C;
+            --text-secondary: #666666;
+            --border: #E8E0D8;
+            --status-green: #4CAF50;
+            --status-blue: #2196F3;
+            --status-orange: #FF9800;
+            --status-gray: #999999;
+            --status-red: #F44336;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+            --notch-top: max(0px, env(safe-area-inset-top));
+            --notch-bottom: max(0px, env(safe-area-inset-bottom));
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Noto Sans', 'Noto Sans KR', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-primary);
+            overflow: hidden;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            padding-top: var(--notch-top);
+        }
+
+        /* Header */
+        .mobile-header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+            box-shadow: var(--shadow);
+        }
+
+        .mobile-header-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            flex: 1;
+        }
+
+        .mobile-header-date {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .mobile-header-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: var(--surface);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        /* Main Content */
+        .mobile-container {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: calc(60px + var(--notch-bottom));
+        }
+
+        .mobile-container::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .mobile-container::-webkit-scrollbar-thumb {
+            background: rgba(141, 110, 99, 0.3);
+            border-radius: 2px;
+        }
+
+        .page-content {
+            padding: 16px;
+            display: none;
+        }
+
+        .page-content.active {
+            display: block;
+            animation: fadeIn 0.2s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .card-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .card-subtitle {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* Summary Grid */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .summary-card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .summary-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .summary-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Task/Item List */
+        .list-item {
+            background: var(--surface);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .list-item:active {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+
+        .list-item-main {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .list-item-name {
+            flex: 1;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            word-break: break-word;
+        }
+
+        .list-item-meta {
+            display: flex;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .badge-green {
+            background: rgba(76, 175, 80, 0.1);
+            color: var(--status-green);
+        }
+
+        .badge-blue {
+            background: rgba(33, 150, 243, 0.1);
+            color: var(--status-blue);
+        }
+
+        .badge-orange {
+            background: rgba(255, 152, 0, 0.1);
+            color: var(--status-orange);
+        }
+
+        .badge-gray {
+            background: rgba(153, 153, 153, 0.1);
+            color: var(--status-gray);
+        }
+
+        .badge-red {
+            background: rgba(244, 67, 54, 0.1);
+            color: var(--status-red);
+        }
+
+        /* Alerts */
+        .alert-item {
+            background: var(--surface);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--status-orange);
+            box-shadow: var(--shadow);
+        }
+
+        .alert-item.critical {
+            border-left-color: var(--status-red);
+        }
+
+        .alert-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .alert-info {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        /* Filter Toggle */
+        .filter-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            min-height: 44px;
+            transition: all 0.2s ease;
+        }
+
+        .toggle-btn.active {
+            background: var(--primary);
+            color: var(--surface);
+            border-color: var(--primary);
+        }
+
+        /* Stage Tabs */
+        .stage-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 4px;
+        }
+
+        .stage-tabs::-webkit-scrollbar {
+            height: 3px;
+        }
+
+        .stage-tab {
+            flex-shrink: 0;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--surface);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+        }
+
+        .stage-tab.active {
+            background: var(--primary);
+            color: var(--surface);
+            border-color: var(--primary);
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            background: var(--surface);
+            color: var(--text-primary);
+            min-height: 44px;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(141, 110, 99, 0.1);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--surface);
+        }
+
+        .btn-primary:active {
+            opacity: 0.9;
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-small {
+            padding: 6px 10px;
+            font-size: 11px;
+            min-height: 32px;
+            flex-shrink: 0;
+        }
+
+        .btn-inline {
+            display: inline-block;
+            width: auto;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .btn-group-full {
+            width: 100%;
+        }
+
+        .btn-group-full .btn {
+            flex: 1;
+        }
+
+        /* Bottom Navigation */
+        .mobile-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            padding-bottom: var(--notch-bottom);
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+            z-index: 1000;
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 10px;
+            font-weight: 500;
+            min-height: 44px;
+            transition: color 0.2s ease;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+        }
+
+        .nav-icon {
+            font-size: 20px;
+        }
+
+        /* Stock Level Bar */
+        .stock-level {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .stock-level-bar {
+            flex: 1;
+            margin: 0 10px;
+        }
+
+        /* Collapsible Section */
+        .collapsible-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            background: var(--surface);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            margin-bottom: 8px;
+        }
+
+        .collapsible-content {
+            display: none;
+        }
+
+        .collapsible-content.expanded {
+            display: block;
+        }
+
+        .collapse-arrow {
+            transition: transform 0.2s ease;
+            display: inline-block;
+        }
+
+        .collapsible-content.expanded .collapse-arrow {
+            transform: rotate(180deg);
+        }
+
+        /* Greeting */
+        .greeting {
+            margin-bottom: 20px;
+        }
+
+        .greeting-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .greeting-date {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Search */
+        .search-box {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 12px 10px 36px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            background: var(--surface);
+            color: var(--text-primary);
+            min-height: 44px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        /* Filter Chips */
+        .filter-chips {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 4px;
+        }
+
+        .filter-chips::-webkit-scrollbar {
+            height: 3px;
+        }
+
+        .chip {
+            flex-shrink: 0;
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--surface);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .chip.active {
+            background: var(--primary);
+            color: var(--surface);
+            border-color: var(--primary);
+        }
+
+        /* Gauge Chart */
+        .gauge {
+            width: 100%;
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 6px 0;
+        }
+
+        .gauge-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .gauge-green {
+            background: var(--status-green);
+        }
+
+        .gauge-orange {
+            background: var(--status-orange);
+        }
+
+        .gauge-red {
+            background: var(--status-red);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .empty-text {
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        /* Expandable Detail */
+        .expandable-detail {
+            display: none;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .expandable-detail.expanded {
+            display: block;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .detail-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .detail-value {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* Animation for pull-to-refresh */
+        .pull-refresh-hint {
+            text-align: center;
+            padding: 12px;
+            color: var(--text-secondary);
+            font-size: 11px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 360px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="mobile-header">
+        <div>
+            <div class="mobile-header-title" id="headerTitle">대시보드</div>
+            <div class="mobile-header-date" id="headerDate">{{ today.strftime('%m월 %d일 (%A)') }}</div>
+        </div>
+        <div class="mobile-header-avatar" title="{{ current_user.name }}">{{ current_user.name[0] }}</div>
+    </div>
+
+    <!-- Content -->
+    <div class="mobile-container">
+        <!-- DASHBOARD PAGE -->
+        <div class="page-content active" id="dashboard-page">
+            <div class="pull-refresh-hint">⬇️ 새로고침하려면 위에서 아래로 끌어내세요</div>
+
+            <!-- Greeting -->
+            <div class="greeting">
+                <div class="greeting-title">안녕하세요, {{ current_user.name }}님</div>
+                <div class="greeting-date">{{ today.strftime('%Y년 %m월 %d일') }}</div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-value">{{ my_tasks|length }}</div>
+                    <div class="summary-label">진행중 업무</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value">{{ total_stock }}</div>
+                    <div class="summary-label">재고</div>
+                </div>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-value">{% if notifications_count %}{{ notifications_count }}{% else %}0{% endif %}</div>
+                    <div class="summary-label">알림</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value">{{ "{:.0f}%".format(avg_remain_pct or 0) }}</div>
+                    <div class="summary-label">평균 소진율</div>
+                </div>
+            </div>
+
+            <!-- My Tasks Section -->
+            {% if my_tasks %}
+            <div class="card">
+                <div class="card-header">
+                    <span>내 업무</span>
+                    <span style="font-size: 12px; color: var(--text-secondary);">{{ my_tasks|length }}개</span>
+                </div>
+                {% for task in my_tasks[:5] %}
+                <div class="list-item" onclick="toggleDetail(this)">
+                    <div class="list-item-main">
+                        <div class="list-item-name">{{ task.item.name if task.item else 'N/A' }}</div>
+                        {% if task.status == 'waiting' %}
+                        <span class="badge badge-gray">대기</span>
+                        {% elif task.status == 'in_progress' %}
+                        <span class="badge badge-green">진행중</span>
+                        {% elif task.status == 'done' %}
+                        <span class="badge badge-blue">완료</span>
+                        {% endif %}
+                    </div>
+                    <div class="list-item-meta">
+                        <span>{{ task.stage }}</span>
+                        {% if task.due_date %}
+                        <span>·</span>
+                        <span>{{ task.due_date.strftime('%m/%d') }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="expandable-detail">
+                        <div class="detail-row">
+                            <span class="detail-label">제목:</span>
+                            <span class="detail-value">{{ task.title }}</span>
+                        </div>
+                        {% if task.assignee %}
+                        <div class="detail-row">
+                            <span class="detail-label">담당:</span>
+                            <span class="detail-value">{{ task.assignee.name }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">📋</div>
+                <div class="empty-text">진행 중인 업무가 없습니다</div>
+            </div>
+            {% endif %}
+
+            <!-- Low Stock Alerts -->
+            {% if low_stock_alerts %}
+            <div class="card">
+                <div class="card-header">
+                    <span>⚠️ 저재고 알림</span>
+                </div>
+                {% for alert in low_stock_alerts %}
+                <div class="alert-item {% if alert.severity == 'critical' %}critical{% endif %}">
+                    <div class="alert-title">{{ alert.item.name }}</div>
+                    <div class="alert-info">
+                        <span>주간 평균: {{ alert.weekly_avg }}개</span>
+                        <span>·</span>
+                        <span>남은 기간: {{ alert.remaining_weeks }}주</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Admin: Overdue Tasks -->
+            {% if has_perm('view_all_tasks') and overdue_tasks %}
+            <div class="card">
+                <div class="card-header">
+                    <span>🔴 마감 연체</span>
+                    <span style="font-size: 12px; color: var(--status-red);">{{ overdue_tasks|length }}개</span>
+                </div>
+                {% for task in overdue_tasks[:3] %}
+                <div class="list-item">
+                    <div class="list-item-main">
+                        <div class="list-item-name">{{ task.item.name if task.item else 'N/A' }}</div>
+                        <span class="badge badge-red">연체</span>
+                    </div>
+                    <div class="list-item-meta">
+                        {% if task.assignee %}
+                        <span>{{ task.assignee.name }}</span>
+                        <span>·</span>
+                        {% endif %}
+                        <span>{{ task.due_date.strftime('%m/%d') }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Admin: Staff Overview -->
+            {% if has_perm('view_all_tasks') and staff_stats %}
+            <div class="card">
+                <div class="card-header">팀 현황</div>
+                {% for stat in staff_stats %}
+                <div class="list-item">
+                    <div class="card-title">{{ stat.user.name }}</div>
+                    <div class="list-item-meta">
+                        <span>진행: {{ stat.active }}</span>
+                        <span>·</span>
+                        <span>대기: {{ stat.waiting }}</span>
+                        <span>·</span>
+                        <span>완료: {{ stat.done_30d }}</span>
+                    </div>
+                    {% if stat.overdue > 0 %}
+                    <div style="margin-top: 6px;">
+                        <span class="badge badge-red">연체 {{ stat.overdue }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- TASKS PAGE -->
+        <div class="page-content" id="tasks-page">
+            <!-- Filter Toggle -->
+            <div class="filter-toggle">
+                <button class="toggle-btn active" onclick="filterTasks('all')">전체</button>
+                <button class="toggle-btn" onclick="filterTasks('mine')">내 업무</button>
+            </div>
+
+            <!-- Stage Tabs -->
+            <div class="stage-tabs" id="stageTabs">
+                <button class="stage-tab active" onclick="filterStage('all')">전체</button>
+                {% set stages = ['기획', '디자인', '컨펌/견적', '제작', '입고'] %}
+                {% for stage in stages %}
+                <button class="stage-tab" onclick="filterStage('{{ stage }}')">{{ stage }}</button>
+                {% endfor %}
+            </div>
+
+            <!-- Task Groups -->
+            {% if stage_tasks %}
+            <div id="taskContent">
+                {% for stage, tasks in stage_tasks.items() %}
+                {% if tasks %}
+                <div class="card" data-stage="{{ stage }}">
+                    <div class="card-header">{{ stage }}</div>
+                    {% for task in tasks %}
+                    <div class="list-item task-item" data-task-id="{{ task.id }}" data-status="{{ task.status }}" onclick="toggleTaskDetail(this)">
+                        <div class="list-item-main">
+                            <div class="list-item-name">{{ task.item.name if task.item else 'N/A' }}</div>
+                            {% if task.status == 'waiting' %}
+                            <span class="badge badge-gray">대기</span>
+                            {% elif task.status == 'in_progress' %}
+                            <span class="badge badge-green">진행중</span>
+                            {% elif task.status == 'done' %}
+                            <span class="badge badge-blue">완료</span>
+                            {% endif %}
+                        </div>
+                        <div class="list-item-meta">
+                            <span>{{ task.title }}</span>
+                        </div>
+                        <div class="list-item-meta" style="margin-top: 4px;">
+                            {% if task.assignee %}
+                            <span>{{ task.assignee.name }}</span>
+                            <span>·</span>
+                            {% endif %}
+                            {% if task.due_date %}
+                            <span>{{ task.due_date.strftime('%m/%d') }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="expandable-detail">
+                            <div class="detail-row">
+                                <span class="detail-label">단계:</span>
+                                <span class="detail-value">{{ task.stage }}</span>
+                            </div>
+                            {% if task.revision_count %}
+                            <div class="detail-row">
+                                <span class="detail-label">수정 횟수:</span>
+                                <span class="detail-value">{{ task.revision_count }}</span>
+                            </div>
+                            {% endif %}
+                            <div class="detail-row">
+                                <span class="detail-label">우선순위:</span>
+                                <span class="detail-value">{{ task.priority or '보통' }}</span>
+                            </div>
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
+                                {% if task.status != 'done' %}
+                                <div class="btn-group btn-group-full">
+                                    {% if task.status == 'waiting' %}
+                                    <button class="btn btn-primary btn-small" onclick="updateTaskStatus({{ task.id }}, 'in_progress', event)">진행중</button>
+                                    {% endif %}
+                                    {% if task.status == 'in_progress' %}
+                                    <button class="btn btn-primary btn-small" onclick="updateTaskStatus({{ task.id }}, 'done', event)">완료</button>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">📋</div>
+                <div class="empty-text">업무가 없습니다</div>
+            </div>
+            {% endif %}
+
+            <!-- Completed Tasks -->
+            {% if done_tasks %}
+            <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                ✅ 완료된 업무 ({{ done_tasks|length }})
+                <span class="collapse-arrow">▼</span>
+            </div>
+            <div class="collapsible-content">
+                {% for task in done_tasks %}
+                <div class="list-item">
+                    <div class="list-item-main">
+                        <div class="list-item-name">{{ task.item.name if task.item else 'N/A' }}</div>
+                        <span class="badge badge-blue">완료</span>
+                    </div>
+                    <div class="list-item-meta">
+                        <span>{{ task.title }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- INVENTORY PAGE -->
+        <div class="page-content" id="inventory-page">
+            <!-- Stock Summary -->
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-value">{{ all_items|length }}</div>
+                    <div class="summary-label">총 상품</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value">{{ total_stock }}</div>
+                    <div class="summary-label">총 재고</div>
+                </div>
+            </div>
+
+            <!-- Item Stock List -->
+            {% if items_a %}
+            <div class="card">
+                <div class="card-header">📦 A라인 재고 현황</div>
+                {% for item in items_a %}
+                {% set pct = (item.current_stock / item.target_qty * 100) if item.target_qty > 0 else 0 %}
+                <div class="list-item">
+                    <div class="card-title">{{ item.name }}</div>
+                    <div class="stock-level">
+                        <span>{{ item.current_stock }}</span>
+                        <div class="stock-level-bar progress-bar">
+                            <div class="progress-fill" style="width: {{ [pct, 100]|min }}%"></div>
+                        </div>
+                        <span>{{ item.target_qty }}</span>
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
+                        {{ "{:.0f}%".format(pct) }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Consumption Status -->
+            {% if items_data %}
+            <div class="card">
+                <div class="card-header">📉 소진 현황</div>
+                {% for data in items_data[:5] %}
+                <div class="list-item">
+                    <div class="card-title">{{ data.item.name }}</div>
+                    <div class="list-item-meta">
+                        <span>주간 평균: {{ data.weekly_avg }}개</span>
+                        <span>·</span>
+                        <span>남은 기간: {{ data.remaining_weeks }}주</span>
+                    </div>
+                    {% set pct_fill = min(data.pct or 0, 100) %}
+                    <div class="gauge">
+                        <div class="gauge-fill {% if pct_fill > 50 %}gauge-green{% elif pct_fill > 25 %}gauge-orange{% else %}gauge-red{% endif %}" style="width: {{ pct_fill }}%"></div>
+                    </div>
+                    {% if data.recommendations %}
+                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 6px;">
+                        💡 {{ data.recommendations }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Manual Count Input -->
+            <div class="card">
+                <div class="card-header">⬇️ 재고 입력</div>
+                <form id="countForm" onsubmit="submitWeeklyCount(event)">
+                    <div class="form-group">
+                        <label class="form-label">상품 선택</label>
+                        <select class="form-select" id="itemSelect" name="item_id" required>
+                            <option value="">선택하세요</option>
+                            {% for item in all_items %}
+                            <option value="{{ item.id }}">{{ item.name }} (현재: {{ item.current_stock }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">확인 수량</label>
+                        <input class="form-input" type="number" id="qtyInput" name="counted_qty" min="0" required placeholder="0">
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">입력</button>
+                </form>
+            </div>
+
+            <!-- Recent Counts Log -->
+            {% if weekly_counts %}
+            <div class="card">
+                <div class="card-header">📋 최근 입력 기록</div>
+                {% for count in weekly_counts[:5] %}
+                <div class="list-item">
+                    <div class="card-title">{{ count.item.name }}</div>
+                    <div class="list-item-meta">
+                        <span>{{ count.counted_qty }}개</span>
+                        <span>·</span>
+                        <span>{{ count.counted_at.strftime('%m/%d %H:%M') }}</span>
+                        {% if count.diff %}
+                        <span>·</span>
+                        <span>{{ count.diff }}</span>
+                        {% endif %}
+                    </div>
+                    {% if count.status %}
+                    <div style="margin-top: 6px;">
+                        {% if count.status == 'confirmed' %}
+                        <span class="badge badge-green">확인됨</span>
+                        {% elif count.status == 'pending' %}
+                        <span class="badge badge-orange">검토중</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ITEMS PAGE -->
+        <div class="page-content" id="items-page">
+            <!-- Search Bar -->
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="itemSearch" placeholder="상품명, SKU 검색..." oninput="filterItems(this.value)">
+            </div>
+
+            <!-- Filter Chips -->
+            <div class="filter-chips">
+                <button class="chip active" onclick="filterByLine(this, 'all')">전체</button>
+                <button class="chip" onclick="filterByLine(this, 'A')">A라인</button>
+                <button class="chip" onclick="filterByLine(this, 'B')">B라인</button>
+                <button class="chip" onclick="filterByLine(this, 'C')">C라인</button>
+            </div>
+
+            <div class="filter-chips">
+                <button class="chip active" onclick="filterByStatus(this, 'all')">전체</button>
+                <button class="chip" onclick="filterByStatus(this, 'selling')">판매중</button>
+                <button class="chip" onclick="filterByStatus(this, 'planning')">기획중</button>
+                <button class="chip" onclick="filterByStatus(this, 'consumed')">소진중</button>
+                <button class="chip" onclick="filterByStatus(this, 'done')">소진완료</button>
+            </div>
+
+            <!-- Items List -->
+            {% if items %}
+            <div id="itemsList">
+                {% for item in items %}
+                <div class="list-item item-card" data-line="{{ item.line }}" data-status="{{ item.status }}" onclick="toggleItemDetail(this)">
+                    <div class="list-item-main">
+                        <div style="flex: 1;">
+                            <div class="list-item-name">{{ item.name }}</div>
+                            <div class="list-item-meta" style="margin-top: 4px;">
+                                <span>{{ item.sku }}</span>
+                                {% if item.category %}
+                                <span>·</span>
+                                <span>{{ item.category.name }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                        {% if item.status == 'selling' %}
+                        <span class="badge badge-green">판매중</span>
+                        {% elif item.status == 'planning' %}
+                        <span class="badge badge-blue">기획중</span>
+                        {% elif item.status == 'consumed' %}
+                        <span class="badge badge-orange">소진중</span>
+                        {% elif item.status == 'done' %}
+                        <span class="badge badge-gray">소진완료</span>
+                        {% elif item.status == 'discontinued' %}
+                        <span class="badge" style="background: rgba(50, 50, 50, 0.1); color: #323232;">단종</span>
+                        {% endif %}
+                    </div>
+                    {% set stock_pct = (item.current_stock / item.target_qty * 100) if item.target_qty > 0 else 0 %}
+                    <div class="stock-level">
+                        <span>재고</span>
+                        <div class="stock-level-bar progress-bar">
+                            <div class="progress-fill" style="width: {{ [stock_pct, 100]|min }}%"></div>
+                        </div>
+                        <span>{{ item.current_stock }}/{{ item.target_qty }}</span>
+                    </div>
+                    <div class="expandable-detail">
+                        <div class="detail-row">
+                            <span class="detail-label">라인:</span>
+                            <span class="detail-value">{{ item.line }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">단가:</span>
+                            <span class="detail-value">{{ "{:,}".format(item.unit_cost) if item.unit_cost else 'N/A' }}원</span>
+                        </div>
+                        {% if item.target_date %}
+                        <div class="detail-row">
+                            <span class="detail-label">목표일:</span>
+                            <span class="detail-value">{{ item.target_date.strftime('%Y-%m-%d') }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="detail-row">
+                            <span class="detail-label">등록일:</span>
+                            <span class="detail-value">{{ item.created_at.strftime('%Y-%m-%d') }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">🏷</div>
+                <div class="empty-text">상품이 없습니다</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="mobile-nav">
+        <a class="nav-item active" href="#" data-page="dashboard" onclick="navigatePage('dashboard', event)">
+            <div class="nav-icon">📊</div>
+            <div>대시보드</div>
+        </a>
+        <a class="nav-item" href="#" data-page="tasks" onclick="navigatePage('tasks', event)">
+            <div class="nav-icon">📋</div>
+            <div>업무</div>
+        </a>
+        <a class="nav-item" href="#" data-page="inventory" onclick="navigatePage('inventory', event)">
+            <div class="nav-icon">📦</div>
+            <div>재고</div>
+        </a>
+        <a class="nav-item" href="#" data-page="items" onclick="navigatePage('items', event)">
+            <div class="nav-icon">🏷</div>
+            <div>상품</div>
+        </a>
+    </nav>
+
+    <script>
+        // Page Navigation
+        function navigatePage(page, event) {
+            event.preventDefault();
+
+            // Update header title
+            const titles = {
+                dashboard: '대시보드',
+                tasks: '업무',
+                inventory: '재고',
+                items: '상품'
+            };
+            document.getElementById('headerTitle').textContent = titles[page];
+
+            // Hide all pages
+            document.querySelectorAll('.page-content').forEach(el => el.classList.remove('active'));
+
+            // Show selected page
+            document.getElementById(page + '-page').classList.add('active');
+
+            // Update nav highlighting
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            event.target.closest('.nav-item').classList.add('active');
+
+            // Scroll to top
+            document.querySelector('.mobile-container').scrollTop = 0;
+        }
+
+        // Task Detail Toggle
+        function toggleDetail(element) {
+            const detail = element.querySelector('.expandable-detail');
+            if (detail) {
+                detail.classList.toggle('expanded');
+            }
+        }
+
+        function toggleTaskDetail(element) {
+            const detail = element.querySelector('.expandable-detail');
+            if (detail) {
+                detail.classList.toggle('expanded');
+            }
+        }
+
+        function toggleItemDetail(element) {
+            const detail = element.querySelector('.expandable-detail');
+            if (detail) {
+                detail.classList.toggle('expanded');
+            }
+        }
+
+        // Collapsible Toggle
+        function toggleCollapsible(header) {
+            const content = header.nextElementSibling;
+            if (content && content.classList.contains('collapsible-content')) {
+                content.classList.toggle('expanded');
+            }
+        }
+
+        // Filter Toggles
+        function filterTasks(type) {
+            const buttons = document.querySelectorAll('.filter-toggle .toggle-btn');
+            buttons.forEach((btn, idx) => {
+                if ((type === 'all' && idx === 0) || (type === 'mine' && idx === 1)) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            // TODO: Implement actual filtering logic
+        }
+
+        function filterStage(stage) {
+            const buttons = document.querySelectorAll('.stage-tab');
+            buttons.forEach(btn => {
+                if ((stage === 'all' && btn.textContent === '전체') || btn.textContent === stage) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            // TODO: Implement actual stage filtering
+        }
+
+        function filterByLine(element, line) {
+            const chips = element.parentElement.querySelectorAll('.chip');
+            chips.forEach(chip => chip.classList.remove('active'));
+            element.classList.add('active');
+
+            const items = document.querySelectorAll('.item-card');
+            items.forEach(item => {
+                if (line === 'all' || item.dataset.line === line) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function filterByStatus(element, status) {
+            const allChips = document.querySelectorAll('.filter-chips')[1].querySelectorAll('.chip');
+            allChips.forEach(chip => chip.classList.remove('active'));
+            element.classList.add('active');
+
+            const items = document.querySelectorAll('.item-card');
+            items.forEach(item => {
+                if (status === 'all' || item.dataset.status === status) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function filterItems(query) {
+            const items = document.querySelectorAll('.item-card');
+            const queryLower = query.toLowerCase();
+
+            items.forEach(item => {
+                const name = item.querySelector('.list-item-name').textContent.toLowerCase();
+                const sku = item.querySelector('.list-item-meta').textContent.toLowerCase();
+
+                if (name.includes(queryLower) || sku.includes(queryLower)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // Task Status Update
+        function updateTaskStatus(taskId, newStatus, event) {
+            event.stopPropagation();
+
+            const formData = new FormData();
+            formData.append('status', newStatus);
+
+            fetch(`/tasks/${taskId}/status`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Update UI
+                    const taskItem = document.querySelector(`[data-task-id="${taskId}"]`);
+                    if (taskItem) {
+                        taskItem.dataset.status = newStatus;
+                        // Refresh or update the status badge
+                        location.reload(); // Simple reload for now
+                    }
+                }
+            })
+            .catch(error => console.error('Error updating task:', error));
+        }
+
+        // Weekly Count Submit
+        function submitWeeklyCount(event) {
+            event.preventDefault();
+
+            const itemId = document.getElementById('itemSelect').value;
+            const countedQty = document.getElementById('qtyInput').value;
+
+            const formData = new FormData();
+            formData.append('item_id', itemId);
+            formData.append('counted_qty', countedQty);
+
+            fetch('/inventory/weekly', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Reset form
+                    document.getElementById('countForm').reset();
+                    // Show success message
+                    alert('재고가 입력되었습니다.');
+                    // Optionally reload
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting count:', error);
+                alert('입력 중 오류가 발생했습니다.');
+            });
+        }
+
+        // Pull-to-refresh (visual hint only)
+        let touchStartY = 0;
+        document.querySelector('.mobile-container').addEventListener('touchstart', (e) => {
+            touchStartY = e.touches[0].clientY;
+        });
+
+        document.querySelector('.mobile-container').addEventListener('touchmove', (e) => {
+            const container = document.querySelector('.mobile-container');
+            if (container.scrollTop === 0) {
+                const touchY = e.touches[0].clientY;
+                const diff = touchY - touchStartY;
+                if (diff > 0) {
+                    // Could add visual feedback here
+                }
+            }
+        });
+    </script>
+</body>
+</html>
