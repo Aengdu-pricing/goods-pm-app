@@ -941,7 +941,7 @@
                                 <span class="detail-value">{{ task.priority or '보통' }}</span>
                             </div>
                             <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
-                                {% if task.status != 'done' %}
+                                {% if task.status != '완료' %}
                                 <div class="btn-group btn-group-full">
                                     {% if task.status == '대기' %}
                                     <button class="btn btn-primary btn-small" onclick="updateTaskStatus({{ task.id }}, '진행중', event)">진행중</button>
@@ -1037,15 +1037,10 @@
                         <span>·</span>
                         <span>남은 기간: {{ data.remaining_weeks }}주</span>
                     </div>
-                    {% set pct_fill = min(data.pct or 0, 100) %}
+                    {% set pct_fill = [data.pct or 0, 100]|min %}
                     <div class="gauge">
                         <div class="gauge-fill {% if pct_fill > 50 %}gauge-green{% elif pct_fill > 25 %}gauge-orange{% else %}gauge-red{% endif %}" style="width: {{ pct_fill }}%"></div>
                     </div>
-                    {% if data.recommendations %}
-                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 6px;">
-                        💡 {{ data.recommendations }}
-                    </div>
-                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
@@ -1090,10 +1085,10 @@
                     </div>
                     {% if count.status %}
                     <div style="margin-top: 6px;">
-                        {% if count.status == 'confirmed' %}
-                        <span class="badge badge-green">확인됨</span>
-                        {% elif count.status == 'pending' %}
-                        <span class="badge badge-orange">검토중</span>
+                        {% if count.status == '확정' %}
+                        <span class="badge badge-green">확정</span>
+                        {% else %}
+                        <span class="badge badge-orange">{{ count.status }}</span>
                         {% endif %}
                     </div>
                     {% endif %}
@@ -1121,10 +1116,10 @@
 
             <div class="filter-chips">
                 <button class="chip active" onclick="filterByStatus(this, 'all')">전체</button>
-                <button class="chip" onclick="filterByStatus(this, 'selling')">판매중</button>
-                <button class="chip" onclick="filterByStatus(this, 'planning')">기획중</button>
-                <button class="chip" onclick="filterByStatus(this, 'consumed')">소진중</button>
-                <button class="chip" onclick="filterByStatus(this, 'done')">소진완료</button>
+                <button class="chip" onclick="filterByStatus(this, '판매중')">판매중</button>
+                <button class="chip" onclick="filterByStatus(this, '기획중')">기획중</button>
+                <button class="chip" onclick="filterByStatus(this, '소진중')">소진중</button>
+                <button class="chip" onclick="filterByStatus(this, '소진완료')">소진완료</button>
             </div>
 
             <!-- Items List -->

@@ -304,8 +304,10 @@ def m_inventory():
             'item': it, 'weekly_avg': weekly_avg,
             'remaining_weeks': remaining_weeks, 'pct': round(pct, 1),
         })
+    total_stock = sum(i.current_stock or 0 for i in all_items)
     return render_template('mobile.html', page='inventory', items_a=items_a,
-                           all_items=all_items, weekly_counts=weekly, items_data=items_data)
+                           all_items=all_items, weekly_counts=weekly, items_data=items_data,
+                           total_stock=total_stock)
 
 @app.route('/m/items')
 @login_required
