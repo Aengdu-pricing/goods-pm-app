@@ -283,31 +283,35 @@ def m_tasks():
 @app.route('/m/inventory')
 @login_required
 def m_inventory():
-    items_a = Item.query.filter(Item.line.contains('A'), Item.current_stock > 0).all()
-    all_items = Item.query.order_by(Item.line, Item.name).all()
-    weekly = WeeklyCount.query.order_by(WeeklyCount.counted_at.desc()).limit(20).all()
-    selling_items = Item.query.filter(Item.status.in_(['판매중', '소진중'])).order_by(Item.line, Item.name).all()
-    items_data = []
-    for it in selling_items:
-        wks = WeeklyCount.query.filter_by(item_id=it.id).order_by(WeeklyCount.counted_at.desc()).limit(16).all()
-        weekly_avg = 0
-        if len(wks) >= 2:
-            consume_weeks = [w for w in wks if w.diff and w.diff < 0]
-            total_consumed = sum(abs(w.diff) for w in consume_weeks)
-            num_weeks = len(consume_weeks)
-            weekly_avg = round(total_consumed / num_weeks) if num_weeks > 0 else 0
-        remaining_weeks = None
-        if weekly_avg > 0 and it.current_stock:
-            remaining_weeks = it.current_stock // weekly_avg
-        pct = (it.current_stock / it.target_qty * 100) if it.target_qty and it.current_stock else 0
-        items_data.append({
-            'item': it, 'weekly_avg': weekly_avg,
-            'remaining_weeks': remaining_weeks, 'pct': round(pct, 1),
-        })
-    total_stock = sum(i.current_stock or 0 for i in all_items)
-    return render_template('mobile.html', page='inventory', items_a=items_a,
-                           all_items=all_items, weekly_counts=weekly, items_data=items_data,
-                           total_stock=total_stock)
+    try:
+        items_a = Item.query.filter(Item.line.contains('A'), Item.current_stock > 0).all()
+        all_items = Item.query.order_by(Item.line, Item.name).all()
+        weekly = WeeklyCount.query.order_by(WeeklyCount.counted_at.desc()).limit(20).all()
+        selling_items = Item.query.filter(Item.status.in_(['판매중', '소진중'])).order_by(Item.line, Item.name).all()
+        items_data = []
+        for it in selling_items:
+            wks = WeeklyCount.query.filter_by(item_id=it.id).order_by(WeeklyCount.counted_at.desc()).limit(16).all()
+            weekly_avg = 0
+            if len(wks) >= 2:
+                consume_weeks = [w for w in wks if w.diff and w.diff < 0]
+                total_consumed = sum(abs(w.diff) for w in consume_weeks)
+                num_weeks = len(consume_weeks)
+                weekly_avg = round(total_consumed / num_weeks) if num_weeks > 0 else 0
+            remaining_weeks = None
+            if weekly_avg > 0 and it.current_stock:
+                remaining_weeks = it.current_stock // weekly_avg
+            pct = (it.current_stock / it.target_qty * 100) if it.target_qty and it.current_stock else 0
+            items_data.append({
+                'item': it, 'weekly_avg': weekly_avg,
+                'remaining_weeks': remaining_weeks, 'pct': round(pct, 1),
+            })
+        total_stock = sum(i.current_stock or 0 for i in all_items)
+        return render_template('mobile.html', page='inventory', items_a=items_a,
+                               all_items=all_items, weekly_counts=weekly, items_data=items_data,
+                               total_stock=total_stock)
+    except Exception as e:
+        import traceback
+        return f'<pre>{traceback.format_exc()}</pre>', 500
 
 @app.route('/m/items')
 @login_required
