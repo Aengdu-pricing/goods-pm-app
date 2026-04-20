@@ -80,7 +80,7 @@
   </div>
   <div class="notif" style="position:relative;cursor:pointer" onclick="toggleNotiPanel()">
     <svg viewBox="0 0 18 18" width="16" height="16" stroke="var(--brown)" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2a5 5 0 015 5c0 4 1.5 5 1.5 5H2.5S4 11 4 7a5 5 0 015-5z"/><path d="M7.5 15a1.5 1.5 0 003 0"/></svg>
-    <div class="badge" id="noti-badge">{{ noti_count if noti_count else '' }}</div>
+    <div class="badge" id="noti-badge" style="{% if not noti_count %}display:none{% endif %}">{{ noti_count if noti_count else '' }}</div>
     <!-- 알림 드롭다운 패널 -->
     <div id="noti-panel" style="display:none;position:absolute;right:0;top:32px;width:360px;max-height:420px;overflow-y:auto;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);z-index:999;padding:0">
       <div style="padding:12px 16px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center">
@@ -2865,6 +2865,7 @@ function loadNotifications() {
     var list = document.getElementById('noti-list');
     var badge = document.getElementById('noti-badge');
     badge.textContent = d.unread_count > 0 ? d.unread_count : '';
+    badge.style.display = d.unread_count > 0 ? 'flex' : 'none';
     if (d.notifications.length === 0) {
       list.innerHTML = '<div style="padding:20px;text-align:center;color:#999;font-size:13px">알림이 없습니다</div>';
       return;
@@ -2917,6 +2918,7 @@ setInterval(function() {
   fetch('/api/notifications').then(r=>r.json()).then(function(d) {
     var badge = document.getElementById('noti-badge');
     badge.textContent = d.unread_count > 0 ? d.unread_count : '';
+    badge.style.display = d.unread_count > 0 ? 'flex' : 'none';
   });
 }, 30000);
 </script>
