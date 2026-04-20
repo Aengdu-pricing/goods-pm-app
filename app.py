@@ -3655,7 +3655,8 @@ with app.app_context():
         '좋은생각 다이어리 보라': 'SF260301',
         '좋은생각 다이어리 초록': 'SF260302',
         '좋은생각 다이어리 파랑': 'SF260303',
-        '좋은생각 명언집 긍정의한줄': 'SF250401,GG250402',
+        '좋은생각 명언집 긍정의한줄 (사은품)': 'SF250401',
+        '좋은생각 명언집 긍정의한줄 (판매용)': 'GG250402',
         '좋은생각 명언집 (리뉴얼)': '',
         '좋은생각 앞치마 머스타드 (선물용)': 'GG250410',
         '좋은생각 앞치마 머스타드 (판매용)': 'GG260401',
@@ -3689,6 +3690,48 @@ with app.app_context():
                          owner_id=_old.owner_id, usage=_old.usage)
             db.session.add(_pink)
         db.session.commit()
+
+    # ── 명언집 분리: 긍정의한줄 → 사은품(SF250401) + 판매용(GG250402) ──
+    _myeong = Item.query.filter_by(name='좋은생각 명언집 긍정의한줄').first()
+    if _myeong:
+        _myeong.name = '좋은생각 명언집 긍정의한줄 (사은품)'
+        _myeong.sku_code = 'SF250401'
+        _myeong.current_stock = 2719
+        _myeong.usage = '구독선물'
+        if not Item.query.filter_by(name='좋은생각 명언집 긍정의한줄 (판매용)').first():
+            _sale = Item(name='좋은생각 명언집 긍정의한줄 (판매용)', sku_code='GG250402',
+                         line=_myeong.line, category_id=_myeong.category_id,
+                         unit_cost=_myeong.unit_cost, target_qty=100,
+                         current_stock=96, status='판매중',
+                         owner_id=_myeong.owner_id, usage='판매',
+                         sale_url_smartstore=_myeong.sale_url_smartstore,
+                         sale_url_aengdu=_myeong.sale_url_aengdu)
+            db.session.add(_sale)
+        db.session.commit()
+
+    # ── 신규 상품 5건 등록 ──
+    _admin = User.query.filter_by(role='편집장').first() or User.query.first()
+    _sub_mgr = User.query.filter_by(role='구독매니저1').first() or _admin
+    _worker = User.query.filter_by(role='실무자').first() or _admin
+    _cat_note = Category.query.filter_by(name='노트류').first()
+    _cat_life = Category.query.filter_by(name='생활용품').first()
+    _new_items = [
+        # (name, sku, line, cat, cost, target, stock, status, owner, usage)
+        ('좋은생각 2025 다이어리', 'SF241004', 'A', _cat_note, 3063, 500, 267, '소진중', _sub_mgr, '구독선물'),
+        ('이왈종 노트 (색상랜덤)', 'GG260101', 'B', _cat_note, None, None, 0, '소진완료', _worker, '판매'),
+        ('제20회 생활문예대상 노트', 'SF250403', 'A', _cat_note, None, 1000, 622, '소진중', _sub_mgr, '구독선물'),
+        ('미셸 들라크루아 노트 단품', 'SF251102', 'B', _cat_note, 1750, 200, 74, '판매중', _worker, '판매'),
+        ('튤립 포스트잇', 'SF251103', 'B', _cat_life, None, 500, 291, '판매중', _worker, '판매'),
+    ]
+    for _n, _sku, _ln, _cat, _cost, _tgt, _stk, _st, _own, _use in _new_items:
+        if not Item.query.filter_by(sku_code=_sku).first() and not Item.query.filter_by(name=_n).first():
+            _it = Item(name=_n, sku_code=_sku, line=_ln,
+                       category_id=_cat.id if _cat else None,
+                       unit_cost=_cost, target_qty=_tgt,
+                       current_stock=_stk, status=_st,
+                       owner_id=_own.id, usage=_use)
+            db.session.add(_it)
+    db.session.commit()
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
