@@ -29,6 +29,7 @@ class Item(db.Model):
     __tablename__ = 'items'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
+    sku_code = db.Column(db.String(200))  # 위하고 품목코드 (쉼표 구분 다중 가능, 예: GG220801,GG220802)
     line = db.Column(db.String(10), nullable=False)  # A, B, C, B,C
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'))
     artist = db.Column(db.String(100))

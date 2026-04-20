@@ -751,6 +751,7 @@
           </div>
         </div>
         <div class="form-row">
+          <div class="form-group"><label>위하고 품목코드</label><input type="text" name="sku_code" placeholder="예: SF260401 (여러 개면 쉼표로 구분)"><div style="margin-top:3px;font-size:10px;color:#999">재고 엑셀 자동 매칭에 사용됩니다</div></div>
           <div class="form-group"><label>카테고리</label>
             <select name="category_id"><option value="">선택</option>{% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select>
           </div>
@@ -862,9 +863,12 @@
           </div>
         </div>
         <div class="form-row">
+          <div class="form-group"><label>위하고 품목코드</label><input type="text" name="sku_code" id="editSkuCode" placeholder="예: SF260401"><div style="margin-top:3px;font-size:10px;color:#999">쉼표로 여러 코드 입력 가능</div></div>
           <div class="form-group"><label>카테고리</label>
             <select name="category_id" id="editCategory"><option value="">선택</option>{% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select>
           </div>
+        </div>
+        <div class="form-row">
           <div class="form-group"><label>용도</label>
             <select name="usage" id="editUsage">
               <option value="판매">판매</option>
@@ -2756,6 +2760,7 @@ function openEditModal(itemId) {
     .then(d => {
       document.getElementById('editForm').action = '/items/' + itemId + '/edit';
       document.getElementById('editName').value = d.name;
+      document.getElementById('editSkuCode').value = d.sku_code || '';
       document.getElementById('editLine').value = d.line;
       document.getElementById('editCategory').value = d.category_id || '';
       document.getElementById('editUsage').value = d.usage;

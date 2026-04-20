@@ -644,6 +644,7 @@ def items():
 @login_required
 def create_item():
     name = request.form['name']
+    sku_code = request.form.get('sku_code', '').strip() or None
     line = request.form['line']
     category_id = request.form.get('category_id') or None
     artist = request.form.get('artist', '')
@@ -697,7 +698,7 @@ def create_item():
         item_status = '기획중'
         current_stock = 0
 
-    item = Item(name=name, line=line, category_id=category_id, artist=artist,
+    item = Item(name=name, sku_code=sku_code, line=line, category_id=category_id, artist=artist,
                 unit_cost=unit_cost, target_qty=target_qty, current_stock=current_stock,
                 status=item_status, owner_id=owner_id, target_date=target_date, memo=memo,
                 sale_url_smartstore=sale_smartstore, sale_url_aengdu=sale_aengdu,
@@ -804,6 +805,7 @@ def edit_item(item_id):
         flash('상품 수정은 담당자 또는 관리자만 가능합니다.', 'error')
         return redirect(url_for('items'))
     item.name = request.form['name']
+    item.sku_code = request.form.get('sku_code', '').strip() or None
     item.line = request.form['line']
     item.category_id = request.form.get('category_id') or None
     item.artist = request.form.get('artist', '')
@@ -945,7 +947,7 @@ def bulk_delete_items():
 def get_item_json(item_id):
     item = Item.query.get_or_404(item_id)
     return jsonify({
-        'id': item.id, 'name': item.name, 'line': item.line,
+        'id': item.id, 'name': item.name, 'sku_code': item.sku_code or '', 'line': item.line,
         'category_id': item.category_id, 'artist': item.artist or '',
         'unit_cost': item.unit_cost, 'target_qty': item.target_qty,
         'current_stock': item.current_stock, 'status': item.status,
@@ -1976,80 +1978,126 @@ def upload_inventory_excel():
         flash(f'엑셀 파싱 오류: {str(e)}', 'error')
         return redirect(url_for('inventory'))
 
-    # 컬럼명 정규화 (공백 제거, 소문자)
+    # ── 컬럼 자동 감지 ──
+    # 위하고 엑셀은 첫 행이 헤더 (품목코드, 품목명, 규격, 재고수량 등)
+    # header=0 (기본값)으로 읽었으므로 df.columns 에 헤더가 있음
+    # 다만 첫 행이 'No' 등이면 header=None으로 재시도
     df.columns = [str(c).strip() for c in df.columns]
     col_map = {c.lower().replace(' ', ''): c for c in df.columns}
 
-    # 품목코드 컬럼 찾기
+    # 헤더 행 감지: 'No'나 숫자가 첫 컬럼이면 이미 헤더 OK
+    # '품목코드'가 컬럼에 없으면 header=None으로 재시도
+    if '품목코드' not in col_map:
+        try:
+            df = pd.read_excel(filepath, header=None) if ext != 'csv' else pd.read_csv(filepath, header=None)
+            # 첫 행에서 '품목코드' 찾기
+            for idx, row in df.iterrows():
+                vals = [str(v).strip() for v in row.values]
+                if '품목코드' in vals:
+                    df.columns = vals
+                    df = df.iloc[idx+1:].reset_index(drop=True)
+                    break
+            df.columns = [str(c).strip() for c in df.columns]
+            col_map = {c.lower().replace(' ', ''): c for c in df.columns}
+        except Exception:
+            pass
+
+    # 필수 컬럼 찾기
     code_col = None
     for key in ['품목코드', '코드', 'code', 'sku', '품번']:
         if key in col_map:
             code_col = col_map[key]
             break
 
-    # 품목명 컬럼 찾기
     name_col = None
     for key in ['품목명', '상품명', '품명', '이름', 'name', '제품명']:
         if key in col_map:
             name_col = col_map[key]
             break
 
-    # 재고수량 컬럼 찾기
     qty_col = None
     for key in ['재고수량', '현재고', '재고', '잔여수량', '수량', 'stock', 'qty', '기말재고']:
         if key in col_map:
             qty_col = col_map[key]
             break
 
+    # 규격 컬럼 (필터용)
+    spec_col = None
+    for key in ['규격', '분류', '구분']:
+        if key in col_map:
+            spec_col = col_map[key]
+            break
+
     if not qty_col:
         flash('엑셀에서 재고수량 컬럼을 찾지 못했습니다. (재고수량/현재고/재고/수량 등의 컬럼명이 필요합니다)', 'error')
         return redirect(url_for('inventory'))
 
-    # DB 상품 매칭
-    all_items = Item.query.all()
-    code_item_map = {}  # sku → item
-    name_item_map = {}  # 정규화이름 → item
-    for it in all_items:
-        if it.sku:
-            code_item_map[it.sku.strip().upper()] = it
-        key = re.sub(r'\s+', '', it.name.lower())
-        name_item_map[key] = it
+    # ── 규격 필터: 정기구독 선물, 굿즈만 (월간지 제외) ──
+    if spec_col:
+        df = df[df[spec_col].isin(['정기구독 선물', '굿즈', '기타'])]
 
-    parsed = []
+    # ── DB 상품의 SKU 코드 → Item 매핑 테이블 구축 ──
+    all_items = Item.query.all()
+    sku_to_item = {}  # 개별 SKU 코드 → item (1:1)
+    for it in all_items:
+        if it.sku_code:
+            for code in it.sku_code.split(','):
+                code = code.strip().upper()
+                if code:
+                    sku_to_item[code] = it
+
+    # ── 엑셀 행별 매칭 (SKU 코드 기반) ──
+    # 같은 item에 여러 SKU가 매핑된 경우 재고 합산
+    item_qty_agg = {}  # item_id → {'item': Item, 'qty': 합산재고, 'excel_names': []}
+    unmatched = []
+
     for _, row in df.iterrows():
-        # 수량 파싱
         raw_qty = row.get(qty_col)
         try:
             qty = int(float(str(raw_qty).replace(',', ''))) if pd.notna(raw_qty) else 0
         except (ValueError, TypeError):
             qty = 0
 
-        excel_name = str(row.get(name_col, '')).strip() if name_col else ''
         excel_code = str(row.get(code_col, '')).strip().upper() if code_col else ''
+        excel_name = str(row.get(name_col, '')).strip() if name_col else ''
 
-        # 매칭: 품목코드 우선 → 이름 매칭
-        matched_item = None
-        if excel_code:
-            matched_item = code_item_map.get(excel_code)
-        if not matched_item and excel_name:
-            norm = re.sub(r'\s+', '', excel_name.lower())
-            matched_item = name_item_map.get(norm)
-            if not matched_item:
-                for key, it in name_item_map.items():
-                    if norm in key or key in norm:
-                        matched_item = it
-                        break
+        matched_item = sku_to_item.get(excel_code)
 
+        if matched_item:
+            iid = matched_item.id
+            if iid in item_qty_agg:
+                item_qty_agg[iid]['qty'] += qty
+                item_qty_agg[iid]['excel_names'].append(f'{excel_name} ({excel_code}: {qty})')
+            else:
+                item_qty_agg[iid] = {
+                    'item': matched_item,
+                    'qty': qty,
+                    'excel_names': [f'{excel_name} ({excel_code}: {qty})'],
+                }
+        else:
+            # SKU 미매칭 → 참고용으로 표시
+            if qty != 0:  # 재고 0인 미매칭 항목은 무시
+                unmatched.append({
+                    'pdf_name': f'{excel_name} [{excel_code}]',
+                    'item_id': None, 'item_name': '',
+                    'qty': qty, 'prev_qty': 0,
+                })
+
+    # ── parsed 리스트 생성 (매칭된 항목 + 미매칭) ──
+    parsed = []
+    for iid, agg in sorted(item_qty_agg.items(), key=lambda x: x[1]['item'].name):
+        it = agg['item']
         parsed.append({
-            'pdf_name': excel_name or excel_code,
-            'item_id': matched_item.id if matched_item else None,
-            'item_name': matched_item.name if matched_item else '',
-            'qty': qty,
-            'prev_qty': matched_item.current_stock if matched_item else 0,
+            'pdf_name': ' + '.join(agg['excel_names']),
+            'item_id': it.id,
+            'item_name': it.name,
+            'qty': agg['qty'],
+            'prev_qty': it.current_stock,
         })
+    parsed.extend(unmatched)
 
     if not parsed:
-        flash('엑셀에서 재고 데이터를 인식하지 못했습니다.', 'error')
+        flash('엑셀에서 매칭되는 재고 데이터가 없습니다. 상품에 위하고 품목코드를 등록해주세요.', 'error')
         return redirect(url_for('inventory'))
 
     return render_template('index.html', page='inventory_preview',
@@ -3585,6 +3633,7 @@ with app.app_context():
         ('audit_logs', 'target_id', 'INTEGER'),
         ('audit_logs', 'target_name', 'VARCHAR(200)'),
         ('audit_logs', 'detail', 'TEXT'),
+        ('items', 'sku_code', 'VARCHAR(200)'),
     ]
     for _tbl, _col, _typ in _migrate_columns:
         try:
@@ -3596,6 +3645,33 @@ with app.app_context():
     seed_database()
     seed_roles()
     seed_permissions()
+
+    # ── 기존 상품에 위하고 품목코드(SKU) 매핑 (1회성) ──
+    _sku_map = {
+        '좋은생각 2026 수건 - 흰색': 'SF260401',
+        '좋은생각 2026 수건 - 분홍': 'SF260402',
+        '좋은생각 2026 수건 - 파랑': 'SF260403',
+        '좋은생각 2026 수건 - 3종 세트': 'SF260401,SF260402,SF260403',
+        '좋은생각 다이어리 보라': 'SF260301',
+        '좋은생각 다이어리 초록': 'SF260302',
+        '좋은생각 다이어리 파랑': 'SF260303',
+        '좋은생각 명언집 긍정의한줄': 'SF250401,GG250402',
+        '좋은생각 명언집 (리뉴얼)': '',
+        '좋은생각 앞치마 머스타드 (선물용)': 'GG250410',
+        '좋은생각 앞치마 머스타드 (판매용)': 'GG260401',
+        '심봉민 노트 조용히쌓인기억 - 골드': 'GG260307',
+        '심봉민 노트 뭉게뭉게피어나는밤 - 파랑': 'GG260306',
+        '심봉민 노트 기억이멈춘섬 - 보라': 'GG260304',
+        '심봉민 노트 나를기다린다롱이 - 초록': 'GG260305',
+        '다비드자맹 고블렛잔 OnJoue 한정판': 'GG251101',
+        '미셸 들라크루아 노트 2종 세트': 'SF250602',
+        '컬러링 가계부 (블루,핑크)': 'GG220801,GG220802',
+    }
+    for _name, _sku in _sku_map.items():
+        _item = Item.query.filter_by(name=_name).first()
+        if _item and not _item.sku_code:
+            _item.sku_code = _sku
+    db.session.commit()
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
