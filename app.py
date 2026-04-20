@@ -3665,13 +3665,30 @@ with app.app_context():
         '심봉민 노트 나를기다린다롱이 - 초록': 'GG260305',
         '다비드자맹 고블렛잔 OnJoue 한정판': 'GG251101',
         '미셸 들라크루아 노트 2종 세트': 'SF250602',
-        '컬러링 가계부 (블루,핑크)': 'GG220801,GG220802',
+        '컬러링 가계부 블루': 'GG220802',
+        '컬러링 가계부 핑크': 'GG220801',
     }
     for _name, _sku in _sku_map.items():
         _item = Item.query.filter_by(name=_name).first()
         if _item and not _item.sku_code:
             _item.sku_code = _sku
     db.session.commit()
+
+    # ── 컬러링 가계부 분리: (블루,핑크) → 블루 + 핑크 신규 ──
+    _old = Item.query.filter_by(name='컬러링 가계부 (블루,핑크)').first()
+    if _old:
+        _old.name = '컬러링 가계부 블루'
+        _old.sku_code = 'GG220802'
+        _old.current_stock = 207
+        # 핑크 신규 생성
+        if not Item.query.filter_by(name='컬러링 가계부 핑크').first():
+            _pink = Item(name='컬러링 가계부 핑크', sku_code='GG220801',
+                         line=_old.line, category_id=_old.category_id,
+                         unit_cost=_old.unit_cost, target_qty=250,
+                         current_stock=239, status=_old.status,
+                         owner_id=_old.owner_id, usage=_old.usage)
+            db.session.add(_pink)
+        db.session.commit()
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
