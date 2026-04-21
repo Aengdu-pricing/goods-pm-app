@@ -1368,11 +1368,19 @@
         <div class="form-group"><label>시작일</label><input type="date" name="period_start"></div>
         <div class="form-group"><label>종료일</label><input type="date" name="period_end"></div>
       </div>
-      <div class="form-group"><label>번들 상품 선택</label>
-        <select name="bundle_items" multiple style="min-height:80px">
-          {% for it in items_all %}<option value="{{ it.id }}">{{ it.name }} ({{ it.line }})</option>{% endfor %}
-        </select>
-        <div style="font-size:11px;color:#888;margin-top:4px">Ctrl(Mac: Cmd) 누른 채 클릭하면 복수 선택 가능</div>
+      <div class="form-group"><label>상품 선택</label>
+        <div style="max-height:180px;overflow-y:auto;border:1px solid var(--border-light);border-radius:6px;padding:8px;display:flex;flex-direction:column;gap:4px">
+          {% for it in items_all %}
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:3px 4px;border-radius:4px;cursor:pointer" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background=''">
+            <input type="checkbox" name="bundle_items" value="{{ it.id }}" style="margin:0">
+            <span style="flex:1">{{ it.name }} <span style="color:#999;font-size:11px">({{ it.line }})</span></span>
+            <label style="display:flex;align-items:center;gap:3px;font-size:11px;color:#888;cursor:pointer" onclick="event.stopPropagation()">
+              <input type="checkbox" name="existing_stock_{{ it.id }}" style="margin:0"> 기존재고
+            </label>
+          </label>
+          {% endfor %}
+        </div>
+        <div style="font-size:11px;color:#888;margin-top:4px">✅ 기존재고 체크 → 업무 생성 없이 연결만 됩니다</div>
       </div>
       <div class="form-group"><label>메모</label><textarea name="memo" rows="2" placeholder="이벤트 기획 배경, 가격 구성 등"></textarea></div>
       <button type="submit" class="btn-primary" style="margin-top:8px">🛒 이벤트 등록</button>
@@ -1394,11 +1402,17 @@
         </div>
         {% if ev.memo %}<div style="margin-top:6px;font-size:12px;color:#888">{{ ev.memo }}</div>{% endif %}
         {% if ev.bundles %}
-        {% set bundle_ids = ev.bundles | tojson | default('[]') %}
         <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">
+          {% set existing_ids = (ev.existing_stock_items or '[]') | replace('[','') | replace(']','') | replace('"','') | replace("'","") %}
           {% for bid in (ev.bundles | replace('[','') | replace(']','') | replace('"','') | replace("'","")).split(',') if bid.strip() %}
           {% set bitem = items_all | selectattr('id', 'equalto', bid.strip()|int) | first %}
-          {% if bitem %}<span style="background:#f0f7f4;color:var(--green);padding:2px 8px;border-radius:4px;font-size:11px">{{ bitem.name }}</span>{% endif %}
+          {% if bitem %}
+          {% if bid.strip() in existing_ids.split(',') %}
+          <span style="background:#f0f0f0;color:#666;padding:2px 8px;border-radius:4px;font-size:11px">📦 {{ bitem.name }}</span>
+          {% else %}
+          <span style="background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:4px;font-size:11px">🆕 {{ bitem.name }}</span>
+          {% endif %}
+          {% endif %}
           {% endfor %}
         </div>
         {% endif %}
@@ -1424,12 +1438,20 @@
           <div class="form-group"><label>종료일</label><input type="date" name="period_end" value="{{ ev.period_end.isoformat() if ev.period_end else '' }}"></div>
           <div class="form-group"><label>총 판매량</label><input type="number" name="total_sold" value="{{ ev.total_sold or '' }}" placeholder="판매 건수"></div>
         </div>
-        <div class="form-group"><label>번들 상품</label>
-          <select name="bundle_items" multiple style="min-height:60px">
-            {% set current_bundles = (ev.bundles | replace('[','') | replace(']','') | replace('"','') | replace("'","")).split(',') if ev.bundles else [] %}
-            {% for it in items_all %}<option value="{{ it.id }}" {{ 'selected' if it.id|string in current_bundles else '' }}>{{ it.name }}</option>{% endfor %}
-          </select>
-          <div style="font-size:11px;color:#888;margin-top:4px">Ctrl(Mac: Cmd) 누른 채 클릭하면 복수 선택 가능</div>
+        <div class="form-group"><label>상품</label>
+          {% set current_bundles = (ev.bundles | replace('[','') | replace(']','') | replace('"','') | replace("'","")).split(',') if ev.bundles else [] %}
+          {% set current_existing = (ev.existing_stock_items or '[]') | replace('[','') | replace(']','') | replace('"','') | replace("'","") %}
+          <div style="max-height:150px;overflow-y:auto;border:1px solid var(--border-light);border-radius:6px;padding:8px;display:flex;flex-direction:column;gap:4px">
+            {% for it in items_all %}
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:3px 4px;border-radius:4px;cursor:pointer">
+              <input type="checkbox" name="bundle_items" value="{{ it.id }}" {{ 'checked' if it.id|string in current_bundles else '' }} style="margin:0">
+              <span style="flex:1">{{ it.name }}</span>
+              <label style="display:flex;align-items:center;gap:3px;font-size:11px;color:#888;cursor:pointer" onclick="event.stopPropagation()">
+                <input type="checkbox" name="existing_stock_{{ it.id }}" {{ 'checked' if it.id|string in current_existing.split(',') else '' }} style="margin:0"> 기존재고
+              </label>
+            </label>
+            {% endfor %}
+          </div>
         </div>
         <div class="form-group"><label>메모</label><textarea name="memo" rows="2">{{ ev.memo or '' }}</textarea></div>
         <button type="submit" class="btn-primary" style="font-size:12px;padding:6px 14px">저장</button>

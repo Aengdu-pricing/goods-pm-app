@@ -198,7 +198,8 @@ class KakaoEvent(db.Model):
     period_start = db.Column(db.Date)
     period_end = db.Column(db.Date)
     status = db.Column(db.String(20), default='기획중')  # 기획중/준비완료/진행중/종료
-    bundles = db.Column(db.Text)  # JSON
+    bundles = db.Column(db.Text)  # JSON — 번들 상품 ID 목록
+    existing_stock_items = db.Column(db.Text)  # JSON — 기존 재고 사용 상품 ID 목록
     total_sold = db.Column(db.Integer)
     memo = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

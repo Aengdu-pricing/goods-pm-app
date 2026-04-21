@@ -2110,28 +2110,33 @@ def kakao():
 def create_kakao_event():
     bundles_raw = request.form.getlist('bundle_items')  # item_id 목록
     bundles_json = json.dumps(bundles_raw) if bundles_raw else '[]'
+    # 기존 재고 사용 상품 ID 수집
+    existing_stock_ids = [bid for bid in bundles_raw if request.form.get(f'existing_stock_{bid}')]
+    existing_json = json.dumps(existing_stock_ids) if existing_stock_ids else '[]'
     ev = KakaoEvent(
         name=request.form['name'],
         period_start=date.fromisoformat(request.form['period_start']) if request.form.get('period_start') else None,
         period_end=date.fromisoformat(request.form['period_end']) if request.form.get('period_end') else None,
         status=request.form.get('status', '기획중'),
         bundles=bundles_json,
+        existing_stock_items=existing_json,
         memo=request.form.get('memo', ''),
     )
     db.session.add(ev)
     db.session.flush()  # get ev.id
 
-    # ── 자동 업무 생성: 번들 상품별 준비 Task ──
+    # ── 자동 업무 생성: 신규 제작 상품만 Task 생성 ──
     from datetime import timedelta
     bundle_ids = json.loads(bundles_json) if bundles_json else []
+    new_item_ids = [bid for bid in bundle_ids if bid not in existing_stock_ids]
     prep_due = ev.period_start - timedelta(days=7) if ev.period_start else None
-    for bid in bundle_ids:
+    for bid in new_item_ids:
         item = Item.query.get(int(bid))
         if not item:
             continue
         task = Task(
             title=f'[이벤트] {ev.name} — {item.name} 준비',
-            description=f'이벤트 "{ev.name}" 번들 상품 준비\n기간: {ev.period_start} ~ {ev.period_end}',
+            description=f'이벤트 "{ev.name}" 신규 상품 준비\n기간: {ev.period_start} ~ {ev.period_end}',
             item_id=item.id,
             assignee_id=item.owner_id or current_user.id,
             status='대기',
@@ -2163,7 +2168,14 @@ def create_kakao_event():
         '이벤트',
     )
     db.session.commit()
-    flash(f'이벤트 "{ev.name}" 등록! 업무 {max(len(bundle_ids),1)}건 자동 생성', 'success')
+    task_count = max(len(new_item_ids), 1) if not bundle_ids or new_item_ids else len(new_item_ids)
+    stock_count = len(existing_stock_ids)
+    msg = f'이벤트 "{ev.name}" 등록!'
+    if task_count:
+        msg += f' 업무 {task_count}건 생성'
+    if stock_count:
+        msg += f', 기존재고 {stock_count}건 연결'
+    flash(msg, 'success')
     return redirect(url_for('kakao'))
 
 @app.route('/kakao/<int:event_id>/update', methods=['POST'])
@@ -2179,8 +2191,9 @@ def update_kakao_event(event_id):
     if request.form.get('period_end'):
         ev.period_end = date.fromisoformat(request.form['period_end'])
     bundles_raw = request.form.getlist('bundle_items')
-    if bundles_raw:
-        ev.bundles = json.dumps(bundles_raw)
+    ev.bundles = json.dumps(bundles_raw) if bundles_raw else '[]'
+    existing_stock_ids = [bid for bid in bundles_raw if request.form.get(f'existing_stock_{bid}')]
+    ev.existing_stock_items = json.dumps(existing_stock_ids) if existing_stock_ids else '[]'
     db.session.commit()
     flash(f'이벤트 "{ev.name}" 수정 완료', 'success')
     return redirect(url_for('kakao'))
@@ -3538,6 +3551,7 @@ with app.app_context():
         ('audit_logs', 'target_name', 'VARCHAR(200)'),
         ('audit_logs', 'detail', 'TEXT'),
         ('items', 'sku_code', 'VARCHAR(200)'),
+        ('kakao_events', 'existing_stock_items', 'TEXT'),
     ]
     for _tbl, _col, _typ in _migrate_columns:
         try:
