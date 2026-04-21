@@ -473,15 +473,6 @@ def dashboard():
             ).distinct().all()
             pipeline_cat_ids = set(r[0] for r in rows)
 
-        # 리뉴얼 업무 존재 여부 일괄 체크
-        renewal_item_ids = set()
-        if selling_ids:
-            rows = db.session.query(Task.item_id).filter(
-                Task.item_id.in_(selling_ids), Task.title.contains('리뉴얼'),
-                Task.status.in_(['대기', '진행중'])
-            ).distinct().all()
-            renewal_item_ids = set(r[0] for r in rows)
-
         for it in selling_items:
             wks = wks_by_item.get(it.id, [])
             weekly_avg = 0
@@ -494,8 +485,7 @@ def dashboard():
                 remaining_weeks = it.current_stock // weekly_avg
                 if remaining_weeks <= 12:
                     pipeline_exists = it.category_id in pipeline_cat_ids if it.category_id else False
-                    renewal_exists = it.id in renewal_item_ids
-                    if not pipeline_exists and not renewal_exists:
+                    if not pipeline_exists:
                         supply_gap_alerts.append({
                             'item': it, 'remaining_weeks': remaining_weeks,
                             'weekly_avg': weekly_avg,
@@ -1274,92 +1264,6 @@ def skip_sample(task_id):
     db.session.commit()
     flash(f'컨펌/견적 건너뜀 → 제작 발주 단계로 이동합니다.', 'success')
     return jsonify({'ok': True})
-
-@app.route('/items/<int:item_id>/renewal', methods=['POST'])
-@login_required
-def create_renewal(item_id):
-    """리뉴얼 업무 생성 (디자인→컨펌/견적→제작→입고 4단계)"""
-    item = Item.query.get_or_404(item_id)
-    # 이미 진행 중인 리뉴얼 업무가 있는지 확인
-    existing = Task.query.filter_by(item_id=item_id).filter(
-        Task.title.contains('리뉴얼'),
-        Task.status.in_(['대기', '진행중'])
-    ).first()
-    if existing:
-        flash(f'이미 진행 중인 리뉴얼 업무가 있습니다: "{existing.title}"', 'warning')
-        return redirect(url_for('items'))
-
-    memo = request.form.get('memo', '').strip()
-    target_date_str = request.form.get('target_date', '')
-    target = date.fromisoformat(target_date_str) if target_date_str else (item.target_date or date.today() + timedelta(days=90))
-
-    # 폼에서 소요일수 받기
-    days_design = int(request.form.get('days_design') or 21)
-    days_sample = int(request.form.get('days_sample') or 7)
-    days_prod = int(request.form.get('days_prod') or 30)
-    days_stock = int(request.form.get('days_stock') or 1)
-
-    # 입고일 업데이트
-    item.target_date = target
-    today = date.today()
-
-    # 역산 (커스텀 소요일수 적용)
-    designer = User.query.filter_by(role='디자이너').first()
-    admin_mgr = User.query.filter_by(role='행정팀장').first()
-
-    stock_date = target
-    prod_end = target - timedelta(days=days_stock)
-    prod_start = prod_end - timedelta(days=days_prod - 1)
-    sample_end = prod_start - timedelta(days=1)
-    sample_start = sample_end - timedelta(days=days_sample - 1)
-    design_end = sample_start - timedelta(days=1)
-    design_start = design_end - timedelta(days=days_design - 1)
-
-    # 과거 날짜 보정
-    def clamp(d):
-        return max(d, today)
-
-    raw_dates = [design_start, design_end, sample_start, sample_end, prod_start, prod_end]
-    has_clamped = any(d < today for d in raw_dates)
-
-    label = f'리뉴얼' + (f' ({memo})' if memo else '')
-    stages = [
-        (f'{item.name} {label} 디자인', '디자인', clamp(design_start), clamp(design_end),
-         designer.id if designer else current_user.id, '높음'),
-        (f'{item.name} {label} 컨펌/견적', '컨펌/견적', clamp(sample_start), clamp(sample_end),
-         item.owner_id or current_user.id, '보통'),
-        (f'{item.name} {label} 제작발주', '제작', clamp(prod_start), clamp(prod_end),
-         item.owner_id or current_user.id, '보통'),
-        (f'{item.name} {label} 입고확인', '입고', stock_date, stock_date,
-         admin_mgr.id if admin_mgr else current_user.id, '보통'),
-    ]
-    for title, stage, start, due, assignee, priority in stages:
-        if start > due:
-            start = due
-        t = Task(title=title, item_id=item.id, stage=stage, status='대기',
-                 start_date=start, due_date=due, assignee_id=assignee, priority=priority)
-        db.session.add(t)
-
-    # 첫 단계(디자인) 바로 진행중으로
-    db.session.flush()
-    first_task = Task.query.filter_by(item_id=item.id, stage='디자인').filter(
-        Task.title.contains('리뉴얼')
-    ).order_by(Task.id.desc()).first()
-    if first_task:
-        first_task.status = '진행중'
-
-    # 관련자 + 상위 3역할에게 알림
-    _notify_related_and_admins(
-        item,
-        f'🔄 "{item.name}" 리뉴얼 업무 4건 생성! ({current_user.name})',
-        url_for('tasks'),
-        '리뉴얼',
-    )
-    db.session.commit()
-    flash(f'"{item.name}" 리뉴얼 업무 4건 생성! (디자인→컨펌/견적→제작→입고)', 'success')
-    if has_clamped:
-        flash('⚠️ 입고일까지 시간이 부족하여 일부 단계 날짜가 오늘 기준으로 보정되었습니다.', 'warning')
-    return redirect(url_for('tasks'))
 
 @app.route('/items/<int:item_id>/reorder', methods=['POST'])
 @login_required

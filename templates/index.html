@@ -314,7 +314,7 @@
         <td style="padding:5px 8px;text-align:right;font-weight:600;color:{{ '#dc2626' if sg.remaining_weeks <= 4 else '#d97706' }}">{{ sg.remaining_weeks }}주</td>
         <td style="padding:5px 8px;text-align:center"><span style="background:{{ '#dc2626' if sg.severity == '긴급' else '#f59e0b' }};color:#fff;padding:1px 8px;border-radius:4px;font-size:10px">{{ sg.severity }}</span></td>
         <td style="padding:5px 8px;text-align:center">
-          <button onclick="openRenewalModal({{ sg.item.id }}, '{{ sg.item.name }}')" style="padding:2px 8px;font-size:10px;background:#7C6DAF;color:#fff;border:none;border-radius:4px;cursor:pointer">리뉴얼</button>
+          <a href="{{ url_for('items') }}" style="padding:2px 8px;font-size:10px;background:var(--green);color:#fff;border:none;border-radius:4px;cursor:pointer;text-decoration:none">→ 상품관리</a>
         </td>
       </tr>
       {% endfor %}
@@ -682,7 +682,6 @@
           <td>{{ it.owner.name if it.owner else '-' }}</td>
           <td style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
             <button type="button" onclick="openEditModal({{ it.id }})" class="btn-edit">수정</button>
-            <button type="button" onclick="openRenewalModal({{ it.id }}, '{{ it.name }}')" style="padding:3px 8px;font-size:11px;background:#7C6DAF;color:#fff;border:none;border-radius:4px;cursor:pointer">🔄 리뉴얼</button>
             <button type="button" onclick="duplicateItem({{ it.id }}, '{{ it.name }}')" style="padding:3px 8px;font-size:11px;background:#5b9bd5;color:#fff;border:none;border-radius:4px;cursor:pointer">📋 복제</button>
             <form method="POST" action="{{ url_for('delete_item', item_id=it.id) }}" style="display:inline" onsubmit="return confirm('「{{ it.name }}」을(를) 삭제하시겠습니까?\n연결된 업무·체크리스트도 함께 삭제됩니다.\n\n이 작업은 되돌릴 수 없습니다.')">
               <button type="submit" class="btn-del">삭제</button>
@@ -696,43 +695,6 @@
 
   <div style="margin-top:16px">
     <a href="https://grim-timi-positivethinking-72254524.koyeb.app/" target="_blank" class="btn-pricing">🔗 앵두 가격 추천 로봇에서 판매가 계산하기 →</a>
-  </div>
-
-  <!-- Renewal Modal -->
-  <div class="modal-overlay" id="renewalModal">
-    <div class="modal" style="max-width:420px">
-      <div class="modal-header">
-        <h3>🔄 리뉴얼 업무 생성</h3>
-        <button class="modal-close" onclick="document.getElementById('renewalModal').classList.remove('show')">×</button>
-      </div>
-      <form id="renewalForm" method="POST">
-        <p id="renewalItemName" style="font-weight:600;margin-bottom:12px;color:var(--brown)"></p>
-        <p style="font-size:12px;color:var(--text-light);margin-bottom:12px">디자인 → 컨펌/견적 → 제작 → 입고 4단계 업무가 생성됩니다.</p>
-        <div class="form-group">
-          <label>목표 입고일 *</label>
-          <input type="date" name="target_date" required onchange="updateRenewalPreview()">
-        </div>
-        <div style="background:#f8f6f3;border-radius:8px;padding:12px 14px;margin:8px 0">
-          <p style="font-size:12px;font-weight:600;color:var(--brown);margin-bottom:8px">📅 단계별 소요일수 (품목에 맞게 조정하세요)</p>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px">
-            <div class="form-group" style="margin:0"><label style="font-size:11px">🎨 디자인</label><input type="number" name="days_design" value="21" min="1" max="180" style="padding:6px;font-size:13px" onchange="updateRenewalPreview()"></div>
-            <div class="form-group" style="margin:0"><label style="font-size:11px">🔍 컨펌/견적</label><input type="number" name="days_sample" value="7" min="1" max="90" style="padding:6px;font-size:13px" onchange="updateRenewalPreview()"></div>
-            <div class="form-group" style="margin:0"><label style="font-size:11px">🏭 제작</label><input type="number" name="days_prod" value="30" min="1" max="180" style="padding:6px;font-size:13px" onchange="updateRenewalPreview()"></div>
-            <div class="form-group" style="margin:0"><label style="font-size:11px">📦 입고확인</label><input type="number" name="days_stock" value="1" min="1" max="30" style="padding:6px;font-size:13px" onchange="updateRenewalPreview()"></div>
-          </div>
-          <div id="renewalPreview" style="margin-top:10px;font-size:11px;color:var(--text-light);line-height:1.6"></div>
-          <div id="renewalWarning" style="display:none;margin-top:6px;padding:6px 10px;background:#fff3cd;border-radius:6px;font-size:11px;color:#856404">⚠️ 일부 날짜가 오늘 이전이라 <b>오늘부터 시작</b>하도록 자동 보정됩니다.</div>
-        </div>
-        <div class="form-group">
-          <label>리뉴얼 내용 (예: 커버 교체, 박스 변경)</label>
-          <input type="text" name="memo" placeholder="간단한 메모">
-        </div>
-        <div class="modal-footer" style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
-          <button type="button" class="btn-outline" onclick="document.getElementById('renewalModal').classList.remove('show')">취소</button>
-          <button type="submit" class="btn-primary">🔄 업무 생성</button>
-        </div>
-      </form>
-    </div>
   </div>
 
   <!-- Item Registration Modal -->
@@ -2323,36 +2285,6 @@ function updatePreview() {
   document.getElementById('pd4').textContent = fmt(stock);
 }
 
-function updateRenewalPreview() {
-  var form = document.getElementById('renewalForm');
-  var d = form.querySelector('input[name="target_date"]').value;
-  if (!d) { document.getElementById('renewalPreview').innerHTML = ''; return; }
-  var target = new Date(d);
-  var today = new Date(); today.setHours(0,0,0,0);
-  var dDesign = parseInt(form.querySelector('input[name="days_design"]').value) || 21;
-  var dSample = parseInt(form.querySelector('input[name="days_sample"]').value) || 7;
-  var dProd = parseInt(form.querySelector('input[name="days_prod"]').value) || 30;
-  var dStock = parseInt(form.querySelector('input[name="days_stock"]').value) || 1;
-
-  var stock = new Date(target);
-  var prodEnd = new Date(target); prodEnd.setDate(prodEnd.getDate() - dStock);
-  var prodStart = new Date(prodEnd); prodStart.setDate(prodStart.getDate() - dProd + 1);
-  var sampleEnd = new Date(prodStart); sampleEnd.setDate(sampleEnd.getDate() - 1);
-  var sampleStart = new Date(sampleEnd); sampleStart.setDate(sampleStart.getDate() - dSample + 1);
-  var designEnd = new Date(sampleStart); designEnd.setDate(designEnd.getDate() - 1);
-  var designStart = new Date(designEnd); designStart.setDate(designStart.getDate() - dDesign + 1);
-
-  var hasPast = designStart < today;
-  document.getElementById('renewalWarning').style.display = hasPast ? 'block' : 'none';
-
-  function fmt(dt){ var r = dt < today ? today : dt; return (r.getMonth()+1)+'/'+r.getDate(); }
-  var html = '🎨 디자인 ' + fmt(designStart)+' ~ '+fmt(designEnd) +
-    ' → 🔍 컨펌 ' + fmt(sampleStart)+' ~ '+fmt(sampleEnd) +
-    ' → 🏭 제작 ' + fmt(prodStart)+' ~ '+fmt(prodEnd) +
-    ' → 📦 입고 ' + fmt(stock);
-  document.getElementById('renewalPreview').innerHTML = html;
-}
-
 // 기존 상품 토글
 function toggleExistingMode(checked) {
   document.getElementById('existingInfo').style.display = checked ? 'block' : 'none';
@@ -2748,12 +2680,6 @@ function addAISuggestion(itemId, el) {
 }
 
 // Edit item modal
-function openRenewalModal(itemId, itemName) {
-  document.getElementById('renewalForm').action = '/items/' + itemId + '/renewal';
-  document.getElementById('renewalItemName').textContent = '📦 ' + itemName;
-  document.getElementById('renewalModal').classList.add('show');
-}
-
 function openEditModal(itemId) {
   fetch('/api/items/' + itemId)
     .then(r => r.json())
