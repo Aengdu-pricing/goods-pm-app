@@ -3564,31 +3564,30 @@ with app.app_context():
     seed_roles()
     seed_permissions()
 
-    # ── 중복 상품 정리 (같은 이름의 상품이 여러 개면 ID 가장 작은 것만 남기고 삭제) ──
+    # ── 중복 상품 정리 ──
     try:
         from sqlalchemy import func as sa_func
         _dupes = db.session.query(Item.name, sa_func.count(Item.id)).group_by(Item.name).having(sa_func.count(Item.id) > 1).all()
         for _dname, _cnt in _dupes:
             _items = Item.query.filter_by(name=_dname).order_by(Item.id).all()
             _keep_id = _items[0].id
-            _del_ids = [it.id for it in _items[1:]]
-            # 연관 테이블의 item_id를 원본으로 이동 (직접 SQL)
-            for _tbl in ['tasks', 'inventory_logs', 'weekly_counts', 'checklist_items',
-                         'feedbacks', 'attachments', 'cost_records', 'performance']:
-                try:
-                    db.session.execute(db.text(
-                        f'UPDATE {_tbl} SET item_id = :keep WHERE item_id IN :dels'
-                    ), {'keep': _keep_id, 'dels': tuple(_del_ids)})
-                except Exception:
-                    db.session.rollback()
-            # 중복 삭제
-            Item.query.filter(Item.id.in_(_del_ids)).delete(synchronize_session=False)
-            app.logger.info(f'중복 정리: "{_dname}" — {len(_del_ids)}개 삭제, id={_keep_id} 유지')
+            for _dup in _items[1:]:
+                # 연관 데이터를 원본으로 이동
+                for _tbl in ['tasks', 'inventory_logs', 'weekly_counts', 'checklist_items',
+                             'feedbacks', 'attachments', 'cost_records', 'performance']:
+                    try:
+                        db.session.execute(db.text(
+                            f'UPDATE {_tbl} SET item_id = :keep WHERE item_id = :old'
+                        ), {'keep': _keep_id, 'old': _dup.id})
+                    except Exception:
+                        pass
+                db.session.execute(db.text('DELETE FROM items WHERE id = :did'), {'did': _dup.id})
+            app.logger.info(f'중복 정리: "{_dname}" — {_cnt-1}개 삭제')
         if _dupes:
             db.session.commit()
     except Exception as e:
         db.session.rollback()
-        app.logger.warning(f'중복 정리 중 오류 (무시): {e}')
+        app.logger.warning(f'중복 정리 스킵: {e}')
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
