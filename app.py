@@ -375,7 +375,7 @@ def dashboard():
     total_target = sum(i.target_qty or 0 for i in selling_items)
     avg_remain_pct = round(total_stock / total_target * 100, 1) if total_target > 0 else 0
 
-    # ── 카카오메이커스 역산 알림 ──
+    # ── 이벤트 역산 알림 ──
     kakao_deadline = 45  # 판매 시작 45일 전부터 알림
     kakao_alerts = []
     upcoming_kakao = KakaoEvent.query.filter(
@@ -1420,7 +1420,7 @@ def _build_month_data(year, month, today):
                 day_events[d] = []
             day_events[d].append({
                 'type': 'kakao', 'label': ke.name[:10],
-                'stage': '카카오', 'status': ke.status, 'full': ke.name,
+                'stage': '이벤트', 'status': ke.status, 'full': ke.name,
             })
         # 종료일이 이 달에 있으면 셀 이벤트 표시
         if month_start <= ke.period_end <= month_end and ke.period_end != ke.period_start:
@@ -1429,7 +1429,7 @@ def _build_month_data(year, month, today):
                 day_events[d] = []
             day_events[d].append({
                 'type': 'kakao_end', 'label': f'{ke.name[:8]} 종료',
-                'stage': '카카오', 'status': ke.status, 'full': ke.name,
+                'stage': '이벤트', 'status': ke.status, 'full': ke.name,
             })
 
     # ── 품목별 단일 바 생성 (기획 시작일 ~ 입고 마감일) ──
@@ -1516,7 +1516,7 @@ def _build_month_data(year, month, today):
                 'id': bar_id, 'row': row, 'col': col_start, 'span': span,
                 'item_id': kakao_item_id, 'color': KAKAO_COLOR, 'opacity': '1',
                 'label': kakao_label if first_segment else '',
-                'title': f'카카오메이커스: {ke.name}  {ke.period_start.strftime("%m/%d")} ~ {ke.period_end.strftime("%m/%d")}',
+                'title': f'이벤트: {ke.name}  {ke.period_start.strftime("%m/%d")} ~ {ke.period_end.strftime("%m/%d")}',
                 'round_left': is_real_start, 'round_right': is_real_end,
             })
             bar_id += 1
@@ -2130,8 +2130,8 @@ def create_kakao_event():
         if not item:
             continue
         task = Task(
-            title=f'[카카오] {ev.name} — {item.name} 준비',
-            description=f'카카오메이커스 이벤트 "{ev.name}" 번들 상품 준비\n기간: {ev.period_start} ~ {ev.period_end}',
+            title=f'[이벤트] {ev.name} — {item.name} 준비',
+            description=f'이벤트 "{ev.name}" 번들 상품 준비\n기간: {ev.period_start} ~ {ev.period_end}',
             item_id=item.id,
             assignee_id=item.owner_id or current_user.id,
             status='대기',
@@ -2144,8 +2144,8 @@ def create_kakao_event():
     # 번들이 없어도 이벤트 전체 준비 Task 1개 생성
     if not bundle_ids:
         task = Task(
-            title=f'[카카오] {ev.name} 준비',
-            description=f'카카오메이커스 이벤트 "{ev.name}" 준비\n기간: {ev.period_start} ~ {ev.period_end}',
+            title=f'[이벤트] {ev.name} 준비',
+            description=f'이벤트 "{ev.name}" 준비\n기간: {ev.period_start} ~ {ev.period_end}',
             assignee_id=current_user.id,
             status='대기',
             priority='높음',
@@ -2155,15 +2155,15 @@ def create_kakao_event():
         )
         db.session.add(task)
 
-    # 전체에게 카카오 이벤트 생성 알림
+    # 전체에게 이벤트 생성 알림
     period_str = f'{ev.period_start} ~ {ev.period_end}' if ev.period_start else ''
     _notify_all(
-        f'🟡 카카오메이커스 이벤트 "{ev.name}" 등록! ({period_str}) — {current_user.name}',
+        f'🟡 이벤트 "{ev.name}" 등록! ({period_str}) — {current_user.name}',
         url_for('kakao'),
-        '카카오이벤트',
+        '이벤트',
     )
     db.session.commit()
-    flash(f'카카오메이커스 이벤트 "{ev.name}" 등록! 업무 {max(len(bundle_ids),1)}건 자동 생성', 'success')
+    flash(f'이벤트 "{ev.name}" 등록! 업무 {max(len(bundle_ids),1)}건 자동 생성', 'success')
     return redirect(url_for('kakao'))
 
 @app.route('/kakao/<int:event_id>/update', methods=['POST'])
@@ -2445,9 +2445,9 @@ def ai_suggest_checks(item_id):
         ])
     if 'C' in line:
         suggestions.extend([
-            '카카오메이커스 입점 조건 확인',
-            '카카오 전용 패키지/라벨 필요 여부',
-            '카카오 판매 수수료 반영한 단가 재검토',
+            '판매 플랫폼 입점 조건 확인',
+            '이벤트 전용 패키지/라벨 필요 여부',
+            '판매 수수료 반영한 단가 재검토',
         ])
 
     # 카테고리별 심화 제안
@@ -2539,7 +2539,7 @@ def ai_analyze():
     selling_price = request.form.get('selling_price', '')
     description = request.form.get('description', '')
 
-    line_desc = {'A': '정기구독 사은품', 'B': '앵두/단행본 굿즈', 'C': '카카오메이커스', 'A,B': '정기구독+앵두/단행본', 'B,C': '앵두+카카오메이커스'}
+    line_desc = {'A': '정기구독 사은품', 'B': '앵두/단행본 굿즈', 'C': '이벤트', 'A,B': '정기구독+앵두/단행본', 'B,C': '앵두+이벤트'}
     line_label = line_desc.get(item_line, item_line or '미정')
 
     # 유사 품목 검색 (DB)
@@ -2757,7 +2757,7 @@ PERMISSION_DEFS = {
     'manage_costs': '비용 관리',
     'manage_checklist': '퀄리티 체크리스트',
     'use_ai_check': '제작 가이드 사용',
-    'manage_kakao': '카카오메이커스 관리',
+    'manage_kakao': '이벤트 관리',
 }
 
 DEFAULT_ROLES = [

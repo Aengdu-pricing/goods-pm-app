@@ -25,7 +25,7 @@
     <div class="divider"></div>
     <div class="section-label">사업 라인</div>
     <a href="{{ url_for('books') }}" class="{% if page=='books' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><path d="M3 3c2-.5 4-.5 7 1v14c-3-1.5-5-1.5-7-1z"/><path d="M17 3c-2-.5-4-.5-7 1v14c3-1.5 5-1.5 7-1z"/><circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none" opacity=".5"/></svg></span>단행본 / 앵두</a>
-    <a href="{{ url_for('kakao') }}" class="{% if page=='kakao' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><circle cx="10" cy="8" r="6"/><path d="M7 14l-2 4h10l-2-4" /><path d="M8 7.5a2.5 2 0 015 0" fill="none"/><circle cx="10" cy="10" r=".8" fill="currentColor" stroke="none"/></svg></span>카카오메이커스</a>
+    <a href="{{ url_for('kakao') }}" class="{% if page=='kakao' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><path d="M2 4h16v2H2z"/><path d="M4 8h12v2H4z"/><path d="M6 12h8v2H6z"/><circle cx="10" cy="17" r="1.5"/></svg></span>이벤트</a>
     <a href="{{ url_for('ideas') }}" class="{% if page=='ideas' %}active{% endif %}"><span class="icon"><svg viewBox="0 0 20 20"><path d="M10 2a6 6 0 014 10.5V15a2 2 0 01-2 2H8a2 2 0 01-2-2v-2.5A6 6 0 0110 2z"/><path d="M8 18h4"/><path d="M10 2v-0" stroke-width="2"/><path d="M3 8H1M19 8h-2M4 3l1.5 1.5M16 3l-1.5 1.5" stroke-width="1.4"/></svg></span>아이디어 게시판</a>
     <div class="divider"></div>
     <div class="section-label">관리</div>
@@ -65,7 +65,7 @@
     {% elif page=='calendar' %}캘린더 / 간트
     {% elif page=='inventory' %}재고 · 소진 현황
     {% elif page=='books' %}단행본 / 앵두 프로젝트
-    {% elif page=='kakao' %}카카오메이커스 이벤트
+    {% elif page=='kakao' %}이벤트 관리
     {% elif page=='ideas' %}아이디어 게시판
     {% elif page=='ai_check' %}제작 가이드
     {% elif page=='checklist' %}퀄리티 체크리스트
@@ -148,7 +148,7 @@
   <!-- ── 카카오메이커스 역산 알림 ── -->
   {% if kakao_alerts %}
   <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:12px 16px;margin-bottom:12px">
-    <div style="font-weight:600;font-size:13px;color:#c2410c;margin-bottom:6px">🛒 카카오메이커스 준비 알림</div>
+    <div style="font-weight:600;font-size:13px;color:#c2410c;margin-bottom:6px">🛒 이벤트 준비 알림</div>
     {% for ka in kakao_alerts %}
     <div style="font-size:12px;color:#9a3412;margin-top:4px">
       <strong>{{ ka.name }}</strong> — 판매 시작까지 <strong>{{ ka.days }}일</strong> 남음 ({{ ka.start.strftime('%m/%d') }})
@@ -621,7 +621,7 @@
         <option value="">전체 라인</option>
         <option value="A">A. 정기구독</option>
         <option value="B">B. 앵두/단행본</option>
-        <option value="C">C. 카카오메이커스</option>
+        <option value="C">C. 이벤트</option>
       </select>
       <select name="cat" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit">
         <option value="">전체 카테고리</option>
@@ -709,7 +709,7 @@
         <div class="form-row">
           <div class="form-group"><label>상품명 <span class="req">*</span></label><input type="text" name="name" required placeholder="예: 좋은생각 수건 연핑크"><div style="margin-top:3px;font-size:10px;color:#999;line-height:1.4">네이밍 룰: <b>[주체] [카테고리] [이름] [변형] [버전]</b><br>예) 좋은생각 수건 연핑크 · 심봉민 노트 조용히쌌인기억 · 앵두 엽서세트 봄 v2</div></div>
           <div class="form-group"><label>사업 라인 <span class="req">*</span></label>
-            <select name="line" required onchange="autoFillSaleUrls(this.value)"><option value="">선택</option><option value="A">A. 정기구독 사은품</option><option value="B">B. 앵두/단행본</option><option value="C">C. 카카오메이커스</option><option value="A,B">A+B</option><option value="B,C">B+C</option></select>
+            <select name="line" required onchange="autoFillSaleUrls(this.value)"><option value="">선택</option><option value="A">A. 정기구독 사은품</option><option value="B">B. 앵두/단행본</option><option value="C">C. 이벤트</option><option value="A,B">A+B</option><option value="B,C">B+C</option></select>
           </div>
         </div>
         <div class="form-row">
@@ -821,7 +821,7 @@
         <div class="form-row">
           <div class="form-group"><label>상품명 <span class="req">*</span></label><input type="text" name="name" id="editName" required><div style="margin-top:3px;font-size:10px;color:#999;line-height:1.4">룰: [주체] [카테고리] [이름] [변형] [버전]</div></div>
           <div class="form-group"><label>사업 라인 <span class="req">*</span></label>
-            <select name="line" id="editLine" required><option value="">선택</option><option value="A">A. 정기구독 사은품</option><option value="B">B. 앵두/단행본</option><option value="C">C. 카카오메이커스</option><option value="A,B">A+B</option><option value="B,C">B+C</option></select>
+            <select name="line" id="editLine" required><option value="">선택</option><option value="A">A. 정기구독 사은품</option><option value="B">B. 앵두/단행본</option><option value="C">C. 이벤트</option><option value="A,B">A+B</option><option value="B,C">B+C</option></select>
           </div>
         </div>
         <div class="form-row">
@@ -1449,7 +1449,7 @@
       <div class="form-row">
         <div class="form-group" style="flex:2"><label>아이디어 제목 <span class="req">*</span></label><input type="text" name="title" required placeholder="예: 김영갑 사진 엽서 세트"></div>
         <div class="form-group"><label>사업 라인</label>
-          <select name="line"><option value="">미정</option><option value="A">A. 정기구독</option><option value="B">B. 앵두/단행본</option><option value="C">C. 카카오메이커스</option><option value="A,B">A+B</option><option value="B,C">B+C</option></select>
+          <select name="line"><option value="">미정</option><option value="A">A. 정기구독</option><option value="B">B. 앵두/단행본</option><option value="C">C. 이벤트</option><option value="A,B">A+B</option><option value="B,C">B+C</option></select>
         </div>
       </div>
       <div class="form-row">
@@ -1520,7 +1520,7 @@
       <div class="form-row">
         <div class="form-group" style="flex:2"><label>상품명 <span class="req">*</span></label><input type="text" name="item_name" required placeholder="예: 심봉민 마스킹테이프 4종"></div>
         <div class="form-group"><label>사업 라인</label>
-          <select name="line"><option value="">선택</option><option value="A">A. 정기구독</option><option value="B">B. 앵두/단행본</option><option value="C">C. 카카오</option><option value="A,B">A+B</option><option value="B,C">B+C</option></select>
+          <select name="line"><option value="">선택</option><option value="A">A. 정기구독</option><option value="B">B. 앵두/단행본</option><option value="C">C. 이벤트</option><option value="A,B">A+B</option><option value="B,C">B+C</option></select>
         </div>
       </div>
       <div class="form-row">
@@ -2342,7 +2342,7 @@ function autoFillSaleUrls(line) {
     hint.innerHTML = '✅ B라인 → <b>'+preview+'</b> 검색 URL 자동 생성 (직접 수정하면 유지돼요)';
     hint.style.color = 'var(--green)';
   } else if (line === 'C') {
-    hint.innerHTML = 'ℹ️ C라인(카카오메이커스)은 카카오 내부 링크로 별도 관리돼요';
+    hint.innerHTML = 'ℹ️ C라인(이벤트/특판)은 각 플랫폼 링크를 직접 입력해 주세요';
     hint.style.color = '#888';
   } else if (line === 'B,C') {
     if(!_userEditedUrls.ss) ss.value = 'https://smartstore.naver.com/positivethinking/search?q=' + q;
