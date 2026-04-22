@@ -487,7 +487,7 @@ def dashboard():
                 weekly_avg = round(total_consumed / num_weeks) if num_weeks > 0 else 0
             if weekly_avg > 0 and it.current_stock:
                 remaining_weeks = it.current_stock // weekly_avg
-                if remaining_weeks <= 12:
+                if remaining_weeks <= 12 and it.status != '단종':
                     pipeline_exists = it.category_id in pipeline_cat_ids if it.category_id else False
                     if not pipeline_exists:
                         supply_gap_alerts.append({
@@ -1705,7 +1705,7 @@ def inventory():
     weekly = WeeklyCount.query.order_by(WeeklyCount.counted_at.desc()).limit(20).all()
 
     # ── 소진 현황 (구 마케팅 부스팅) ──
-    selling_items = Item.query.filter(Item.status.in_(['판매중', '소진중'])).order_by(Item.line, Item.name).all()
+    selling_items = Item.query.filter(Item.status.in_(['판매중', '소진중', '단종']), Item.current_stock > 0).order_by(Item.line, Item.name).all()
     items_data = []
     for it in selling_items:
         # 주간소진량: 최소 2주 ~ 최대 16주(약 4개월), 데이터 쌓이는 만큼 윈도우 확대
