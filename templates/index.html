@@ -564,7 +564,7 @@
   {% if done_tasks %}
   <div class="card" style="margin-top:16px">
     <h3 onclick="document.getElementById('done-list').style.display=document.getElementById('done-list').style.display==='none'?'block':'none'" style="cursor:pointer">
-      ✓ 완료된 업무 <span style="font-size:12px;color:var(--text-light);font-weight:400">({{ done_tasks|length }}건 — 클릭하여 펼치기)</span>
+      ✓ 완료된 업무 <span style="font-size:12px;color:var(--text-light);font-weight:400">(최근 30일 · {{ done_tasks|length }}건 — 클릭하여 펼치기)</span>
     </h3>
     <div id="done-list" style="display:none;margin-top:12px">
       <table class="data-table">

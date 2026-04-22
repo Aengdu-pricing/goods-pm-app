@@ -255,10 +255,14 @@ def m_tasks():
             if idx > prev:
                 item_active_idx[t.item_id] = idx
     stage_tasks = {s: [] for s in STAGES}
+    _done_cutoff = datetime.utcnow() - timedelta(days=30)
     done_tasks = []
     for t in all_tasks:
         if t.status == '완료':
-            done_tasks.append(t)
+            if t.completed_at and t.completed_at >= _done_cutoff:
+                done_tasks.append(t)
+            elif not t.completed_at and t.created_at and t.created_at >= _done_cutoff:
+                done_tasks.append(t)
             continue
         if t.stage not in STAGES:
             continue
@@ -568,10 +572,14 @@ def tasks():
                 item_active_idx[t.item_id] = idx
 
     stage_tasks = {s: [] for s in STAGES}
+    _done_cutoff = datetime.utcnow() - timedelta(days=30)
     done_tasks = []
     for t in all_tasks:
         if t.status == '완료':
-            done_tasks.append(t)
+            if t.completed_at and t.completed_at >= _done_cutoff:
+                done_tasks.append(t)
+            elif not t.completed_at and t.created_at and t.created_at >= _done_cutoff:
+                done_tasks.append(t)
             continue
         if t.stage not in STAGES:
             continue
