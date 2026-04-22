@@ -1273,6 +1273,19 @@ def skip_sample(task_id):
     flash(f'컨펌/견적 건너뜀 → 제작 발주 단계로 이동합니다.', 'success')
     return jsonify({'ok': True})
 
+@app.route('/items/<int:item_id>/discontinue', methods=['POST'])
+@login_required
+def discontinue_item(item_id):
+    """상품 단종 처리 (삭제가 아닌 상태 변경)"""
+    item = Item.query.get_or_404(item_id)
+    old_status = item.status
+    item.status = '단종'
+    _audit('상태변경', 'item', item.id, item.name,
+           f'상태: {old_status} → 단종')
+    db.session.commit()
+    flash(f'"{item.name}" 단종 처리 완료', 'success')
+    return redirect(url_for('inventory'))
+
 @app.route('/items/<int:item_id>/reorder', methods=['POST'])
 @login_required
 def create_reorder(item_id):

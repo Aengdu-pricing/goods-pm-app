@@ -1125,6 +1125,9 @@
         <input type="date" name="target_date" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px">
         <button type="submit" style="padding:4px 12px;font-size:12px;background:var(--danger);color:#fff;border:none;border-radius:4px;cursor:pointer;white-space:nowrap">🔄 재발주</button>
       </form>
+      <form method="POST" action="{{ url_for('discontinue_item', item_id=it.id) }}" onsubmit="return confirm('「{{ it.name }}」을(를) 단종 처리할까요?')">
+        <button type="submit" style="padding:4px 12px;font-size:12px;background:#999;color:#fff;border:none;border-radius:4px;cursor:pointer;white-space:nowrap">✕ 단종</button>
+      </form>
     </div>
     {% endfor %}
   </div>
