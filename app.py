@@ -208,10 +208,16 @@ def m_dashboard():
         wks = wks_by_item.get(it.id, [])
         weekly_avg = 0
         if len(wks) >= 2:
-            consume_weeks = [w for w in wks if w.diff and w.diff < 0]
-            total_consumed = sum(abs(w.diff) for w in consume_weeks)
-            num_weeks = len(consume_weeks)
-            weekly_avg = round(total_consumed / num_weeks) if num_weeks > 0 else 0
+            # 이전 실사 counted_qty와 비교하여 실제 소진량 계산
+            sorted_wks = sorted(wks, key=lambda w: w.counted_at)
+            total_consumed = 0
+            consume_count = 0
+            for i in range(1, len(sorted_wks)):
+                delta = sorted_wks[i-1].counted_qty - sorted_wks[i].counted_qty
+                if delta > 0:  # 실제 소진이 있었던 구간만
+                    total_consumed += delta
+                    consume_count += 1
+            weekly_avg = round(total_consumed / consume_count) if consume_count > 0 else 0
         if weekly_avg > 0 and it.current_stock:
             remaining_weeks = it.current_stock // weekly_avg
             if remaining_weeks <= 8:
@@ -296,10 +302,15 @@ def m_inventory():
         wks = WeeklyCount.query.filter_by(item_id=it.id).order_by(WeeklyCount.counted_at.desc()).limit(16).all()
         weekly_avg = 0
         if len(wks) >= 2:
-            consume_weeks = [w for w in wks if w.diff and w.diff < 0]
-            total_consumed = sum(abs(w.diff) for w in consume_weeks)
-            num_weeks = len(consume_weeks)
-            weekly_avg = round(total_consumed / num_weeks) if num_weeks > 0 else 0
+            sorted_wks = sorted(wks, key=lambda w: w.counted_at)
+            total_consumed = 0
+            consume_count = 0
+            for i in range(1, len(sorted_wks)):
+                delta = sorted_wks[i-1].counted_qty - sorted_wks[i].counted_qty
+                if delta > 0:
+                    total_consumed += delta
+                    consume_count += 1
+            weekly_avg = round(total_consumed / consume_count) if consume_count > 0 else 0
         remaining_weeks = None
         if weekly_avg > 0 and it.current_stock:
             remaining_weeks = it.current_stock // weekly_avg
@@ -481,10 +492,15 @@ def dashboard():
             wks = wks_by_item.get(it.id, [])
             weekly_avg = 0
             if len(wks) >= 2:
-                consume_weeks = [w for w in wks if w.diff and w.diff < 0]
-                total_consumed = sum(abs(w.diff) for w in consume_weeks)
-                num_weeks = len(consume_weeks)
-                weekly_avg = round(total_consumed / num_weeks) if num_weeks > 0 else 0
+                sorted_wks = sorted(wks, key=lambda w: w.counted_at)
+                total_consumed = 0
+                consume_count = 0
+                for i in range(1, len(sorted_wks)):
+                    delta = sorted_wks[i-1].counted_qty - sorted_wks[i].counted_qty
+                    if delta > 0:
+                        total_consumed += delta
+                        consume_count += 1
+                weekly_avg = round(total_consumed / consume_count) if consume_count > 0 else 0
             if weekly_avg > 0 and it.current_stock:
                 remaining_weeks = it.current_stock // weekly_avg
                 if remaining_weeks <= 12 and it.status != '단종':
@@ -1708,15 +1724,19 @@ def inventory():
     selling_items = Item.query.filter(Item.status.in_(['판매중', '소진중', '단종']), Item.current_stock > 0).order_by(Item.line, Item.name).all()
     items_data = []
     for it in selling_items:
-        # 주간소진량: 최소 2주 ~ 최대 16주(약 4개월), 데이터 쌓이는 만큼 윈도우 확대
+        # 주간소진량: 이전 실사 대비 실제 소진량 (최대 16회분)
         wks = WeeklyCount.query.filter_by(item_id=it.id).order_by(WeeklyCount.counted_at.desc()).limit(16).all()
         weekly_avg = 0
         if len(wks) >= 2:
-            # 실제 소진(diff < 0)이 일어난 주만 집계
-            consume_weeks = [w for w in wks if w.diff and w.diff < 0]
-            total_consumed = sum(abs(w.diff) for w in consume_weeks)
-            num_weeks = len(consume_weeks)
-            weekly_avg = round(total_consumed / num_weeks) if num_weeks > 0 else 0
+            sorted_wks = sorted(wks, key=lambda w: w.counted_at)
+            total_consumed = 0
+            consume_count = 0
+            for i in range(1, len(sorted_wks)):
+                delta = sorted_wks[i-1].counted_qty - sorted_wks[i].counted_qty
+                if delta > 0:
+                    total_consumed += delta
+                    consume_count += 1
+            weekly_avg = round(total_consumed / consume_count) if consume_count > 0 else 0
         remaining_weeks = None
         if weekly_avg > 0 and it.current_stock:
             remaining_weeks = it.current_stock // weekly_avg
